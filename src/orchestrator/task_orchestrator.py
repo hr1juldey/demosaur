@@ -9,6 +9,7 @@ from typing import Callable, Any, Dict, Optional
 from dataclasses import dataclass, field
 
 from src.orchestrator.priority import TaskPriority
+from src.orchestrator.backpressure import BackpressureMonitor, AlertLevel
 
 
 @dataclass(order=True)
@@ -41,6 +42,14 @@ class TaskOrchestrator:
         self._active_tasks: set[asyncio.Task] = set()
         self._max_concurrent = max_concurrent
         self._max_queued = max_queued
+        # Initialize backpressure monitor with default thresholds
+        self._backpressure_monitor = BackpressureMonitor()
+        self._alert_callback = None
+
+    def set_backpressure_callback(self, callback: Callable[[AlertLevel, float], None]):
+        """Set callback for backpressure alerts"""
+        self._alert_callback = callback
+        self._backpressure_monitor.set_alert_callback(callback)
 
     async def start(self, num_workers: int = 3):
         """Start worker pool"""
@@ -66,6 +75,8 @@ class TaskOrchestrator:
             timeout=timeout
         )
         await self._queue.put(item)  # Blocks if queue full
+        # Check if backpressure threshold is exceeded after adding item
+        self._check_backpressure()
 
     async def _worker(self, worker_id: int):
         """Worker that processes tasks from queue"""
@@ -75,6 +86,9 @@ class TaskOrchestrator:
                 item = await asyncio.wait_for(self._queue.get(), timeout=1.0)
             except asyncio.TimeoutError:
                 continue
+
+            # Check backpressure after removing an item from queue
+            self._check_backpressure()
 
             # Acquire semaphore to limit concurrency
             async with self._semaphore:
@@ -96,6 +110,16 @@ class TaskOrchestrator:
                 finally:
                     self._active_tasks.discard(task)
                     self._queue.task_done()
+                    # Check backpressure after task completion (queue might have space now)
+                    self._check_backpressure()
+
+    def _check_backpressure(self):
+        """Internal method to check backpressure and emit alerts"""
+        stats = self.get_queue_stats()
+        self._backpressure_monitor.check_backpressure(
+            queued=stats["queued"],
+            max_queued=stats["max_queued"]
+        )
 
     async def shutdown(self):
         """Gracefully shutdown orchestrator (cancel all tasks)"""
