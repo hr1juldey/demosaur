@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     model_name: str = "mistral:7b"
     temperature: float = 0.7
-    max_tokens: int = 2048
+    max_tokens: int = 4096
 
     # Execution Configuration
     max_iterations_per_module: int = 10
