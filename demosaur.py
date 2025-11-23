@@ -1,5 +1,5 @@
 """
-Code Intern MCP Server - Main Entry Point.
+Demosaur MCP Server - Main Entry Point.
 
 A DSPy-powered MCP server that acts as a coding intern,
 doing exploratory coding, testing, and refinement using local Ollama models.
