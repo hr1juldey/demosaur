@@ -1,6 +1,7 @@
 # Hybrid FastAPI + FastMCP + Event Sourcing - DETAILED Implementation Checklist
 
 **CRITICAL FINDINGS from Codebase Analysis**:
+
 - ⚠️ Existing event system in `src/orchestrator/events.py` (simple, no vector clocks)
 - ⚠️ Streaming already exists in `src/orchestrator/streaming.py` (AsyncIterator pattern)
 - ⚠️ Global state dictionaries NOT thread-safe (StateManager, InterventionManager)
@@ -14,22 +15,27 @@
 ### 1.1 Core Event Types
 
 **File**: `src/events/__init__.py` (≤20 lines)
+
 - [ ] Create module structure
 - [ ] Export: Event, EventType, EventStore, VectorClock, StateProjection, EventOrdering
 
 **File**: `src/events/event_types.py` (≤100 lines)
+
 - [ ] Define `EventType` enum with 18 types
 
 **INTEGRATION NOTE**: Must merge with existing `src/orchestrator/events.py`:
+
 - Existing: TASK_STARTED, PLANNING_COMPLETE, MODULE_STARTED, MODULE_ITERATION, TASK_COMPLETE
 - New additions: CODE_GENERATED, CORRECTION_STARTED, CORRECTION_COMPLETED, BUG_REPORT_RECEIVED, TEST_STARTED, TEST_PASSED, TEST_FAILED
 
 **File**: `src/events/event.py` (≤100 lines)
+
 - [ ] Define `Event` dataclass (frozen=True)
 - [ ] Add `__post_init__` validation
 - [ ] Add `to_dict()` method
 
 **PASSING CRITERIA**:
+
 - ✅ Event is immutable (frozen=True enforced)
 - ✅ event_id is valid UUID format
 - ✅ task_id is non-empty string
@@ -38,6 +44,7 @@
 - ✅ code_version ≥ 0
 
 **FAILING CRITERIA**:
+
 - ❌ Event modified after creation (raises FrozenInstanceError)
 - ❌ event_id is None or empty
 - ❌ task_id is None, empty, or non-string
@@ -45,6 +52,7 @@
 - ❌ data contains non-serializable objects
 
 **EDGE CASES**:
+
 1. Empty vector_clock {} - should be valid
 2. causation_id = None - valid for root events
 3. data = {} - valid empty metadata
@@ -59,9 +67,11 @@
 ### 1.2 Vector Clock Implementation
 
 **File**: `src/events/vector_clock.py` (≤100 lines)
+
 - [ ] Implement `VectorClock` class
 
 **PASSING CRITERIA**:
+
 - ✅ tick() increments process_id counter by exactly 1
 - ✅ merge() takes max of each process value
 - ✅ happens_before() correctly identifies causal precedence
@@ -69,6 +79,7 @@
 - ✅ Empty clocks handled (return False for happens_before)
 
 **FAILING CRITERIA**:
+
 - ❌ tick() increments by ≠1
 - ❌ merge() doesn't take max (takes min, sum, etc.)
 - ❌ happens_before() false positive (clock1 || clock2 returns True)
@@ -76,6 +87,7 @@
 - ❌ concurrent() returns True for causal events
 
 **EDGE CASES**:
+
 1. **Empty clocks**: {} vs {} - should be concurrent
 2. **Single process**: {"p1": 5} vs {"p1": 3} - should be happens_before
 3. **Disjoint processes**: {"p1": 1} vs {"p2": 1} - should be concurrent
@@ -90,9 +102,11 @@
 ### 1.3 Event Store
 
 **File**: `src/events/event_store.py` (≤100 lines)
+
 - [ ] Implement `EventStore` class
 
 **PASSING CRITERIA**:
+
 - ✅ append() is thread-safe (asyncio.Lock)
 - ✅ Sequence numbers increment by exactly 1 with no gaps
 - ✅ Persistence succeeds and file is readable
@@ -101,6 +115,7 @@
 - ✅ Concurrent appends don't corrupt sequence
 
 **FAILING CRITERIA**:
+
 - ❌ Sequence number gaps exist (e.g., 1, 2, 4...)
 - ❌ Sequence numbers repeat (e.g., 1, 2, 2, 3)
 - ❌ Concurrent appends cause race condition
@@ -109,6 +124,7 @@
 - ❌ File corruption on interrupted write
 
 **EDGE CASES**:
+
 1. **Concurrent append from 10 tasks** - all should get unique sequences
 2. **Disk full during persist** - should handle gracefully
 3. **File permissions** - should handle permission errors
@@ -125,9 +141,11 @@
 ### 1.4 State Projections
 
 **File**: `src/events/projections.py` (≤100 lines)
+
 - [ ] Implement `StateProjection` class
 
 **PASSING CRITERIA**:
+
 - ✅ rebuild_state() replays all events in order
 - ✅ State matches last code_version from events
 - ✅ Stale events (old version) are ignored
@@ -135,6 +153,7 @@
 - ✅ No events = empty state (not error)
 
 **FAILING CRITERIA**:
+
 - ❌ rebuild_state() misses events
 - ❌ rebuild_state() replays in wrong order
 - ❌ State includes data from stale events
@@ -142,6 +161,7 @@
 - ❌ Empty event list causes error
 
 **EDGE CASES**:
+
 1. **No events for task_id** - should return empty initialized state
 2. **Out-of-order events** (by timestamp) - should use sequence_number
 3. **Duplicate sequence numbers** - should detect and error
@@ -158,9 +178,11 @@
 ### 1.5 Event Ordering Utilities
 
 **File**: `src/events/ordering.py` (≤100 lines)
+
 - [ ] Implement `EventOrdering` class
 
 **PASSING CRITERIA**:
+
 - ✅ is_report_valid_for_current_code() uses all 3 methods (version, clock, hash)
 - ✅ Version mismatch → False
 - ✅ Clock causality (report before correction) → False
@@ -168,11 +190,13 @@
 - ✅ All checks pass → True
 
 **FAILING CRITERIA**:
+
 - ❌ Only checks 1 or 2 of the 3 methods
 - ❌ Version match + clock mismatch → returns True (should be False)
 - ❌ Hash missing in event → crashes (should handle gracefully)
 
 **EDGE CASES**:
+
 1. **Report and correction same version, concurrent clocks** - should use hash
 2. **Hash missing in both events** - should fall back to version+clock
 3. **code_hash is None** - should handle gracefully
@@ -253,6 +277,7 @@
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projections.py -v --tb=short
 ```
@@ -260,6 +285,7 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 ⛔ **STOP HERE IF ANY TEST FAILS** ⛔
 
 **Debug checklist if tests fail**:
+
 - [ ] Check asyncio.Lock is acquired before all dict/list modifications
 - [ ] Check sequence_number assignment happens inside lock
 - [ ] Check file writes are atomic (write to temp, then rename)
@@ -273,21 +299,25 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 ### 2.1 Priority System
 
 **File**: `src/orchestrator/priority.py` (≤100 lines)
+
 - [ ] Define `TaskPriority` IntEnum
 - [ ] Implement `TaskPriorityAssigner`
 
 **PASSING CRITERIA**:
+
 - ✅ Priority values are integers (0, 10, 20, 30, 40)
 - ✅ CRITICAL < HIGH < MEDIUM < LOW < BACKGROUND
 - ✅ assign_priority() maps event types correctly
 - ✅ should_preempt() returns True only if ≥20 priority difference
 
 **FAILING CRITERIA**:
+
 - ❌ Priority comparison broken (HIGH > CRITICAL)
 - ❌ assign_priority() returns wrong priority for event
 - ❌ should_preempt() allows 10-point difference (should be 20)
 
 **EDGE CASES**:
+
 1. **Unknown EventType** - should default to BACKGROUND
 2. **None event** - should handle gracefully
 3. **Event without event_type field** - should handle
@@ -299,9 +329,11 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 ### 2.2 Task Orchestrator
 
 **File**: `src/orchestrator/task_orchestrator.py` (≤100 lines)
+
 - [ ] Implement `TaskOrchestrator` class
 
 **PASSING CRITERIA**:
+
 - ✅ Queue accepts tasks until maxsize (100) reached
 - ✅ 101st task blocks until queue has space
 - ✅ Semaphore limits to max_concurrent (5) simultaneous tasks
@@ -311,6 +343,7 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 - ✅ shutdown() cancels all pending and active tasks
 
 **FAILING CRITERIA**:
+
 - ❌ Queue accepts 101+ tasks without blocking
 - ❌ More than max_concurrent tasks run simultaneously
 - ❌ Lower priority task executes before higher priority
@@ -319,6 +352,7 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 - ❌ shutdown() leaves tasks running
 
 **EDGE CASES**:
+
 1. **submit_task() with queue full** - should block until space available
 2. **Worker crash** - should restart worker or handle gracefully
 3. **Task raises exception** - should log and continue, not crash worker
@@ -337,19 +371,23 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 ### 2.3 Backpressure Monitoring
 
 **File**: `src/orchestrator/backpressure.py` (≤100 lines)
+
 - [ ] Implement `BackpressureMonitor` class
 
 **PASSING CRITERIA**:
+
 - ✅ Alerts when queue is 80% full
 - ✅ CRITICAL alert when queue is 100% full
 - ✅ No false positives (alerting when queue <80%)
 
 **FAILING CRITERIA**:
+
 - ❌ No alert when queue 90% full
 - ❌ Alert spam (multiple alerts per second)
 - ❌ Crash when queue stats unavailable
 
 **EDGE CASES**:
+
 1. **Queue oscillating at 79-81%** - should debounce alerts
 2. **Rapid queue drain** - should clear alert quickly
 3. **Multiple orchestrators** - each should monitor independently
@@ -403,6 +441,7 @@ pytest tests/test_event_store.py tests/test_vector_clock.py tests/test_projectio
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ```
@@ -410,6 +449,7 @@ pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ⛔ **STOP HERE IF ANY TEST FAILS** ⛔
 
 **Debug checklist**:
+
 - [ ] Check PriorityQueue correctly orders by priority (lower = higher)
 - [ ] Check Semaphore(5) enforces max concurrent
 - [ ] Check asyncio.Queue(maxsize=100) blocks on 101st put()
@@ -423,21 +463,25 @@ pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ### 3.1 Context Manager
 
 **File**: `src/context/context_manager.py` (≤100 lines)
+
 - [ ] Implement `ContextManager` class
 
 **PASSING CRITERIA**:
+
 - ✅ Token estimate within 20% of actual (chars/4 ± 20%)
 - ✅ Routes to larger model when >80% of context limit
 - ✅ 4-layer context structure maintained
 - ✅ Cached prompts reused (not regenerated)
 
 **FAILING CRITERIA**:
+
 - ❌ Token estimate off by >30%
 - ❌ Context exceeds model limit (causes LLM error)
 - ❌ Routing to larger model fails
 - ❌ Cache misses when it should hit
 
 **EDGE CASES**:
+
 1. **Event with 50K chars** - should trigger model routing
 2. **mistral:7b at 7.5K tokens** - should route to qwen3:8b
 3. **qwen3:8b at 30K tokens** - should route to claude (or reject)
@@ -451,20 +495,24 @@ pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ### 3.2 Event Summarizer
 
 **File**: `src/context/event_summarizer.py` (≤100 lines)
+
 - [ ] Implement `EventSummarizer` class
 
 **PASSING CRITERIA**:
+
 - ✅ Compression achieves ≥5x token reduction
 - ✅ Summary includes key statistics (module count, iteration count)
 - ✅ Recent events (last 5) kept in full detail
 - ✅ Older events compressed to 1-line summaries
 
 **FAILING CRITERIA**:
+
 - ❌ Compression <3x (not effective enough)
 - ❌ Summary missing critical info (current version, status)
 - ❌ Recent events lost or corrupted
 
 **EDGE CASES**:
+
 1. **keep_recent=5 but only 3 events** - should keep all 3
 2. **1000 old events** - compression should still be fast (<100ms)
 3. **Events with large data fields** - should truncate data in compression
@@ -475,20 +523,24 @@ pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ### 3.3 System Prompt Cache
 
 **File**: `src/context/prompt_cache.py` (≤100 lines)
+
 - [ ] Implement `SystemPromptCache` class
 
 **PASSING CRITERIA**:
+
 - ✅ First call generates prompt (cache miss)
 - ✅ Second call reuses prompt (cache hit)
 - ✅ clear_cache() invalidates all entries
 - ✅ Different event_types have different prompts
 
 **FAILING CRITERIA**:
+
 - ❌ Cache always misses (regenerates every time)
 - ❌ Cache returns wrong prompt for event_type
 - ❌ clear_cache() doesn't actually clear
 
 **EDGE CASES**:
+
 1. **Unknown event_type** - should generate generic prompt
 2. **Cache with 100 entries** - should handle (no size limit)
 3. **Prompt generation fails** - should retry or use fallback
@@ -498,20 +550,24 @@ pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ### 3.4 Relevance Filter
 
 **File**: `src/context/relevance_filter.py` (≤100 lines)
+
 - [ ] Implement `RelevanceFilter` class
 
 **PASSING CRITERIA**:
+
 - ✅ Returns ≤limit events
 - ✅ Events in chronological order
 - ✅ Filters by: same module, same version, causal chain
 - ✅ Empty result if no relevant events
 
 **FAILING CRITERIA**:
+
 - ❌ Returns >limit events
 - ❌ Events out of chronological order
 - ❌ Includes irrelevant events (wrong module/version)
 
 **EDGE CASES**:
+
 1. **limit=10 but only 3 relevant events** - return 3
 2. **All events irrelevant** - return []
 3. **Causation chain broken** - should still return what's available
@@ -573,6 +629,7 @@ pytest tests/test_task_orchestrator.py tests/test_priority_assignment.py -v -s
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_context_manager.py tests/test_event_summarizer.py tests/test_relevance_filter.py -v
 ```
@@ -580,9 +637,11 @@ pytest tests/test_context_manager.py tests/test_event_summarizer.py tests/test_r
 ⛔ **STOP HERE IF ANY TEST FAILS** ⛔
 
 ---
+
 # Phase 3 Enhancements: Networked Cache for Small LLMs
 
 **CRITICAL RESEARCH FINDINGS**:
+
 - ⚠️ Simple compression loses 3rd/4th degree relationships
 - ⚠️ Temporal causality lost in flat summaries
 - ⚠️ Small LLMs (7B-8B) need aggressive token management
@@ -596,21 +655,25 @@ pytest tests/test_context_manager.py tests/test_event_summarizer.py tests/test_r
 ### 3.5 Networked Cache (Online + Offline)
 
 **File**: `src/context/networked_cache.py` (≤100 lines)
+
 - [ ] Implement `CacheNode` dataclass
 - [ ] Implement `NetworkedCache` class with graph structure
 
 **PASSING CRITERIA**:
+
 - ✅ Each node has explicit references to dependencies and related nodes
 - ✅ Graph traversal retrieves related context within 2 hops
 - ✅ get_related_context() respects token budget
 - ✅ Nodes stored in NetworkX DiGraph for relationship queries
 
 **FAILING CRITERIA**:
+
 - ❌ Nodes lack references (isolated summaries)
 - ❌ Graph traversal doesn't respect token limit
 - ❌ Related context retrieval fails or times out
 
 **EDGE CASES**:
+
 1. **Circular dependencies** (A→B→C→A) - should detect and handle
 2. **Orphaned nodes** (no dependencies/references) - should still store
 3. **Deep dependency chain** (10 levels) - should limit depth to 3
@@ -618,6 +681,7 @@ pytest tests/test_context_manager.py tests/test_event_summarizer.py tests/test_r
 5. **Missing referenced node** - should handle gracefully
 
 **Architecture**:
+
 ```python
 @dataclass
 class CacheNode:
@@ -632,6 +696,7 @@ class CacheNode:
 ```
 
 **Graph Structure**:
+
 ```
 [Task: task-123]
 ├─ contains → [Module: validators.py]
@@ -655,21 +720,25 @@ class CacheNode:
 ### 3.6 Online Cache (Live Context During Execution)
 
 **File**: `src/context/online_cache.py` (≤100 lines)
+
 - [ ] Implement `OnlineCache` class
 - [ ] Implement priority-based eviction (LRU + priority)
 
 **PASSING CRITERIA**:
+
 - ✅ Token budget enforced (8K for Mistral, 32K for Qwen3)
 - ✅ Priority-based eviction: keep CRITICAL, evict BACKGROUND first
 - ✅ Fast access (<1ms for cache hit)
 - ✅ Automatic eviction when budget exceeded
 
 **FAILING CRITERIA**:
+
 - ❌ Cache grows beyond token budget
 - ❌ Eviction removes CRITICAL items before BACKGROUND
 - ❌ Cache access slow (>10ms)
 
 **EDGE CASES**:
+
 1. **All items CRITICAL priority** - evict oldest CRITICAL
 2. **Cache empty, get() called** - return None gracefully
 3. **Rapid updates** (100 items/sec) - should handle without lag
@@ -678,6 +747,7 @@ class CacheNode:
 **Token Budget Allocation**:
 
 **Mistral 7B (8K context)**:
+
 ```
 Total: 8,192 tokens
 ├─ System Prompt: 500 tokens (6%)
@@ -693,6 +763,7 @@ Total: 8,192 tokens
 ```
 
 **Qwen3 8B (32K context)**:
+
 ```
 Total: 32,768 tokens
 ├─ System Prompt: 500 tokens (1.5%)
@@ -713,27 +784,32 @@ Total: 32,768 tokens
 ### 3.7 Offline Cache (Persistent Between Sessions)
 
 **File**: `src/context/offline_cache.py` (≤100 lines)
+
 - [ ] Implement `OfflineCache` class
 - [ ] Implement disk persistence with NetworkX graph serialization
 
 **PASSING CRITERIA**:
+
 - ✅ Graph persists to disk (JSON or pickle)
 - ✅ load() restores full graph with all nodes
 - ✅ search_semantic() finds similar nodes via embeddings
 - ✅ PageRank ranking prioritizes important nodes
 
 **FAILING CRITERIA**:
+
 - ❌ Persistence fails silently
 - ❌ load() corrupts graph or loses nodes
 - ❌ Semantic search returns irrelevant nodes
 
 **EDGE CASES**:
+
 1. **File doesn't exist on load()** - initialize empty graph
 2. **Corrupt graph file** - fallback to empty, log error
 3. **Large graph** (10K nodes) - should compress or use graph DB
 4. **No embeddings available** - fallback to keyword search
 
 **Features**:
+
 - **Semantic search**: Find nodes by meaning, not exact match
 - **PageRank ranking**: Prioritize frequently-referenced nodes
 - **Persistent storage**: Survives task completion
@@ -744,22 +820,26 @@ Total: 32,768 tokens
 ### 3.8 DSPy-Based Summary Generation
 
 **File**: `src/context/dspy_summarizers.py` (≤100 lines)
+
 - [ ] Implement `ModuleSummarizer` DSPy signature
 - [ ] Implement `FunctionSummarizer` DSPy signature
 - [ ] Implement `TaskSummarizer` DSPy signature
 
 **PASSING CRITERIA**:
+
 - ✅ Summaries have structured fields (purpose, dependencies, etc.)
 - ✅ Type-safe outputs via DSPy signatures
 - ✅ Consistent format across all summaries
 - ✅ Summary generation completes in <5s
 
 **FAILING CRITERIA**:
+
 - ❌ Summaries missing required fields
 - ❌ Inconsistent format between calls
 - ❌ Generation times out (>30s)
 
 **EDGE CASES**:
+
 1. **Empty code input** - should generate "No code yet" summary
 2. **Malformed code** (syntax errors) - should still summarize
 3. **Very long code** (10K lines) - should truncate or sample
@@ -821,21 +901,25 @@ class TaskSummarizer(dspy.Signature):
 ### 3.9 Event Sourcing Integration
 
 **File**: `src/context/event_cache_integration.py` (≤100 lines)
+
 - [ ] Implement `EventSourcedCache` class
 - [ ] Implement cache reconstruction from events
 
 **PASSING CRITERIA**:
+
 - ✅ rebuild_cache() reconstructs cache from event history
 - ✅ Time-travel: rebuild at any past timestamp
 - ✅ Cache invalidation via vector clocks
 - ✅ Event replay is deterministic (same events = same cache)
 
 **FAILING CRITERIA**:
+
 - ❌ Rebuild produces different cache on second run
 - ❌ Time-travel fails or produces wrong state
 - ❌ Cache invalidation misses stale entries
 
 **EDGE CASES**:
+
 1. **Empty event history** - return empty cache
 2. **Events out of order** - sort by sequence_number first
 3. **Rebuild at future timestamp** - return latest state
@@ -899,21 +983,25 @@ class EventSourcedCache:
 ### 3.10 Hierarchical Context Builder
 
 **File**: `src/context/hierarchical_builder.py` (≤100 lines)
+
 - [ ] Implement `HierarchicalContextBuilder` class
 - [ ] Implement multi-level summary assembly
 
 **PASSING CRITERIA**:
+
 - ✅ Build context in priority order (CRITICAL first)
 - ✅ Respect token budget (stop at 80% to reserve generation space)
 - ✅ Include explicit references between levels
 - ✅ Gracefully handle missing nodes
 
 **FAILING CRITERIA**:
+
 - ❌ Context exceeds token budget
 - ❌ Priority order not respected
 - ❌ Missing references between levels
 
 **EDGE CASES**:
+
 1. **Token budget = 1000, but CRITICAL context = 1500** - truncate CRITICAL
 2. **All nodes are LOW priority** - still include what fits
 3. **Referenced node missing** - skip reference, continue
@@ -1064,6 +1152,7 @@ Test Coverage: [→ test_email_valid], [→ test_email_invalid]
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_networked_cache.py \
        tests/test_online_offline_cache.py \
@@ -1079,12 +1168,14 @@ pytest tests/test_networked_cache.py \
 ## Summary: What This Solves
 
 **Problem**: Context compression wipes out event details, causing small LLMs to forget:
+
 - **What** they were doing (task goal, current module)
 - **Why** they were doing it (design decisions, iteration history)
 - **How** they were doing it (approaches tried, test results)
 - **3rd/4th degree relations** (dependencies of dependencies)
 
 **Solution**: Networked cache with explicit references:
+
 - **Online cache**: Fast, live context for current task (8K-32K tokens)
 - **Offline cache**: Persistent historical knowledge (unlimited)
 - **Graph structure**: Explicit references preserve relationships
@@ -1099,18 +1190,21 @@ pytest tests/test_networked_cache.py \
 ## Integration Notes
 
 **Existing Code Compatibility**:
+
 - ✅ Works with existing EventStore (Phase 1)
 - ✅ Uses VectorClock for invalidation (Phase 1)
 - ✅ Integrates with TaskOrchestrator priority system (Phase 2)
 - ✅ Builds on existing WorkflowEvent types
 
 **Migration Path**:
+
 1. Implement networked cache alongside existing context management
 2. Generate cache nodes from existing task states
 3. Gradually replace simple compression with graph-based retrieval
 4. Monitor effectiveness: compression ratio vs information retention
 
 **Performance Considerations**:
+
 - Graph traversal: O(N) where N = number of related nodes (typically <50)
 - Semantic search: O(log K) where K = total nodes (using embeddings + FAISS)
 - Cache rebuild: O(E) where E = number of events (typically <1000)
@@ -1123,19 +1217,23 @@ pytest tests/test_networked_cache.py \
 ### 4.1 Pydantic Models
 
 **File**: `src/api/models/requests.py` (≤100 lines)
+
 - [ ] Define `TaskRequest`, `InterventionRequest` models
 
 **PASSING CRITERIA**:
+
 - ✅ TaskRequest.prompt is non-empty string
 - ✅ TaskRequest.answers is list (can be empty)
 - ✅ Pydantic validation rejects invalid data
 
 **FAILING CRITERIA**:
+
 - ❌ Accepts empty prompt ""
 - ❌ Accepts answers as non-list
 - ❌ Validation doesn't catch malformed data
 
 **EDGE CASES**:
+
 1. **prompt with 100K chars** - should handle or reject with clear error
 2. **answers with 1000 items** - should handle
 3. **Unicode/emoji in prompt** - should handle
@@ -1143,19 +1241,23 @@ pytest tests/test_networked_cache.py \
 5. **priority="INVALID"** - should reject with error
 
 **File**: `src/api/models/responses.py` (≤100 lines)
+
 - [ ] Define response models
 
 **PASSING CRITERIA**:
+
 - ✅ All required fields present
 - ✅ Serialization to JSON works
 - ✅ websocket_url format is valid (ws://host:port/ws/task_id)
 
 **FAILING CRITERIA**:
+
 - ❌ Missing required fields
 - ❌ Non-serializable fields
 - ❌ Invalid URL format
 
 **EDGE CASES**:
+
 1. **task_id with special chars** - URL encoding should handle
 2. **Very long task_id** (1000 chars) - should handle or reject
 3. **None values** - should serialize as null
@@ -1165,9 +1267,11 @@ pytest tests/test_networked_cache.py \
 ### 4.2 WebSocket Manager
 
 **File**: `src/api/websocket_manager.py` (≤100 lines)
+
 - [ ] Implement `WebSocketManager` class
 
 **PASSING CRITERIA**:
+
 - ✅ connect() accepts WebSocket and stores in dict
 - ✅ Multiple clients can connect to same task_id
 - ✅ broadcast_to_task() sends to all connected clients
@@ -1175,11 +1279,13 @@ pytest tests/test_networked_cache.py \
 - ✅ Failed sends don't crash other broadcasts
 
 **FAILING CRITERIA**:
+
 - ❌ Only 1 client per task_id allowed
 - ❌ broadcast fails if one client disconnected
 - ❌ Memory leak (disconnected clients not removed)
 
 **EDGE CASES**:
+
 1. **Client connects, then immediately disconnects** - should handle
 2. **broadcast to task_id with no clients** - should be no-op, not error
 3. **Client connection fails during accept** - should handle gracefully
@@ -1195,9 +1301,11 @@ pytest tests/test_networked_cache.py \
 ### 4.3 Task Manager (FastAPI Integration)
 
 **File**: `src/api/task_manager.py` (≤100 lines)
+
 - [ ] Implement `TaskManager` class
 
 **PASSING CRITERIA**:
+
 - ✅ start_task() creates asyncio.Task and stores in dict
 - ✅ Callback cleanup when task completes
 - ✅ cancel_task() cancels and awaits task
@@ -1205,12 +1313,14 @@ pytest tests/test_networked_cache.py \
 - ✅ shutdown_all() cancels all tasks
 
 **FAILING CRITERIA**:
+
 - ❌ start_task() blocks until task completes
 - ❌ Completed tasks not removed (memory leak)
 - ❌ cancel_task() doesn't await (leaves zombie tasks)
 - ❌ shutdown_all() misses some tasks
 
 **EDGE CASES**:
+
 1. **Task raises exception** - callback should still fire
 2. **cancel_task() on completed task** - should handle gracefully
 3. **Double cancel** - should be idempotent
@@ -1224,9 +1334,11 @@ pytest tests/test_networked_cache.py \
 ### 4.4-4.6 Endpoints
 
 **Files**: `src/api/endpoints/*.py` (≤100 lines each)
+
 - [ ] health.py, tasks.py, websocket.py
 
 **PASSING CRITERIA**:
+
 - ✅ POST /tasks returns 200 with task_id
 - ✅ GET /tasks/{task_id} returns current status
 - ✅ WebSocket /ws/{task_id} accepts connection
@@ -1234,12 +1346,14 @@ pytest tests/test_networked_cache.py \
 - ✅ GET /health returns 200 when healthy
 
 **FAILING CRITERIA**:
+
 - ❌ POST /tasks with invalid data returns 200 (should be 400)
 - ❌ GET /tasks/nonexistent returns 200 (should be 404)
 - ❌ WebSocket doesn't send version in messages
 - ❌ Health check returns 200 when Ollama down (should be 503)
 
 **EDGE CASES**:
+
 1. **POST /tasks during high load** - should queue or reject gracefully
 2. **GET /tasks/{id} for task that hasn't started** - should return status "created"
 3. **WebSocket connect before task starts** - should wait or error clearly
@@ -1251,20 +1365,24 @@ pytest tests/test_networked_cache.py \
 ### 4.7 Versioned State Manager
 
 **File**: `src/api/versioned_state.py` (≤100 lines)
+
 - [ ] Implement `VersionedState` class
 
 **PASSING CRITERIA**:
+
 - ✅ update() rejects version ≤ current_version
 - ✅ update() is thread-safe (asyncio.Lock)
 - ✅ get_current_version() returns latest version
 - ✅ States indexed by version number
 
 **FAILING CRITERIA**:
+
 - ❌ Accepts stale update (v2 after v3)
 - ❌ Race condition on concurrent updates
 - ❌ Version collision (two states with same version)
 
 **EDGE CASES**:
+
 1. **Update v1, v3 (skip v2)** - should accept (versions can have gaps)
 2. **Concurrent update of v2 from two sources** - only one should succeed
 3. **Update with v=0** - should accept as initial
@@ -1352,6 +1470,7 @@ pytest tests/test_networked_cache.py \
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_api_models.py tests/test_websocket_manager.py tests/test_task_manager.py tests/test_endpoints.py tests/test_websocket_endpoint.py -v
 ```
@@ -1367,6 +1486,7 @@ pytest tests/test_api_models.py tests/test_websocket_manager.py tests/test_task_
 **File**: `src/api/main.py` (≤100 lines)
 
 **PASSING CRITERIA**:
+
 - ✅ Lifespan startup configures DSPy successfully
 - ✅ Orchestrator workers start (3 workers running)
 - ✅ All routers mounted (/health, /tasks, /ws)
@@ -1375,12 +1495,14 @@ pytest tests/test_api_models.py tests/test_websocket_manager.py tests/test_task_
 - ✅ Lifespan shutdown cancels all tasks
 
 **FAILING CRITERIA**:
+
 - ❌ DSPy configuration fails, app still starts
 - ❌ Workers don't start
 - ❌ FastMCP not accessible at /mcp/
 - ❌ Shutdown doesn't clean up tasks
 
 **EDGE CASES**:
+
 1. **Ollama not running at startup** - should error clearly, not start
 2. **Port 9876 already in use** - should error clearly
 3. **Shutdown during active task** - should wait for cancellation
@@ -1393,6 +1515,7 @@ pytest tests/test_api_models.py tests/test_websocket_manager.py tests/test_task_
 **File**: `src/mcp/fastmcp_server.py` (MODIFY)
 
 **CHANGES**:
+
 ```python
 # Add at end (line 151+):
 def get_asgi_app():
@@ -1401,16 +1524,19 @@ def get_asgi_app():
 ```
 
 **PASSING CRITERIA**:
+
 - ✅ get_asgi_app() returns valid ASGI app
 - ✅ All existing tools still work via stdio
 - ✅ Mounted app works via HTTP at /mcp/
 
 **FAILING CRITERIA**:
+
 - ❌ get_asgi_app() returns None or errors
 - ❌ stdio mode broken
 - ❌ HTTP mode broken
 
 **EDGE CASES**:
+
 1. **stdio and HTTP used simultaneously** - should work independently
 2. **global state shared** - should be thread-safe
 
@@ -1421,15 +1547,18 @@ def get_asgi_app():
 **File**: `src/mcp/server_runner.py` (MODIFY)
 
 **CHANGES**:
+
 - Add --fastapi flag
 - If --fastapi: `subprocess.run(["uvicorn", "src.api.main:app", ...])`
 
 **PASSING CRITERIA**:
+
 - ✅ --fastapi starts hybrid server on port 9876
 - ✅ --http still works (FastMCP HTTP only)
 - ✅ Default (no flags) still works (stdio)
 
 **FAILING CRITERIA**:
+
 - ❌ --fastapi doesn't start server
 - ❌ Breaking existing modes
 
@@ -1474,6 +1603,7 @@ def get_asgi_app():
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_hybrid_integration.py tests/test_network_access.py -v
 ```
@@ -1489,22 +1619,26 @@ pytest tests/test_hybrid_integration.py tests/test_network_access.py -v
 **File**: `src/orchestrator/workflow.py` (MODIFY)
 
 **CRITICAL INTEGRATION NOTES**:
+
 - Existing WorkflowOrchestrator (line 30-166)
 - Existing StreamingWorkflowOrchestrator (in streaming.py)
 - Must add event emission WITHOUT breaking existing functionality
 
 **PASSING CRITERIA**:
+
 - ✅ Existing workflow still works without WebSocket manager
 - ✅ With WebSocket manager, events emitted at each stage
 - ✅ Events stored in EventStore
 - ✅ Backward compatible (Optional parameters)
 
 **FAILING CRITERIA**:
+
 - ❌ Workflow breaks if event_store=None
 - ❌ Events not emitted
 - ❌ EventStore not populated
 
 **EDGE CASES**:
+
 1. **websocket_manager=None** - should work (for backward compat)
 2. **event_store=None** - should work (for backward compat)
 3. **Both provided** - should emit events to both
@@ -1512,6 +1646,7 @@ pytest tests/test_hybrid_integration.py tests/test_network_access.py -v
 5. **EventStore append fails** - should log error, continue workflow
 
 **INTEGRATION WITH EXISTING EVENT SYSTEM**:
+
 - Existing `WorkflowEvent` in orchestrator/events.py
 - New `Event` in events/event.py
 - Must coexist! Perhaps emit both temporarily.
@@ -1523,6 +1658,7 @@ pytest tests/test_hybrid_integration.py tests/test_network_access.py -v
 **File**: `src/orchestrator/state.py` (MODIFY)
 
 **CHANGES**:
+
 ```python
 # Line 23+ in TaskState.__init__:
 self.asyncio_task: Optional[asyncio.Task] = None
@@ -1531,11 +1667,13 @@ self.code_version: int = 0
 ```
 
 **PASSING CRITERIA**:
+
 - ✅ New fields added
 - ✅ Existing fields unchanged
 - ✅ Backward compatible (old code still works)
 
 **FAILING CRITERIA**:
+
 - ❌ Breaking changes to existing fields
 - ❌ Import errors
 
@@ -1588,6 +1726,7 @@ self.code_version: int = 0
 ```
 
 **Run Tests**:
+
 ```bash
 pytest tests/test_workflow_events.py tests/test_end_to_end.py -v --tb=long
 ```
@@ -1598,35 +1737,40 @@ pytest tests/test_workflow_events.py tests/test_end_to_end.py -v --tb=long
 
 ## Summary: Critical Edge Cases Across All Phases
 
-### Thread Safety Issues (HIGH PRIORITY):
+### Thread Safety Issues (HIGH PRIORITY)
+
 1. StateManager.tasks - concurrent access
 2. InterventionManager.interventions - concurrent access
 3. EventStore.sequence_counter - must use lock
 4. AsyncLogger.logs - list append not atomic
 5. WebSocketManager.active_connections - dict modification
 
-### Data Validation Issues:
+### Data Validation Issues
+
 6. task_id - never validated (could be empty, None, malicious)
 7. prompt - could be empty string ""
 8. code_version - could be negative
 9. event.data - could contain non-serializable objects
 10. module_spec.dependencies - could be malformed
 
-### Integration Gotchas:
+### Integration Gotchas
+
 11. Two event systems (WorkflowEvent vs Event) - must coexist
 12. StreamingWorkflowOrchestrator already exists - must integrate
 13. Global state managers - must be made async-safe
 14. TestRunner subprocess.run - blocks event loop, not truly async
 15. AsyncLogger file writes - not atomic, race condition
 
-### Performance Edge Cases:
+### Performance Edge Cases
+
 16. 1M events in EventStore - projection should be <5s
 17. 100 concurrent WebSocket clients - broadcast should be <100ms
 18. Queue with 100 tasks - submit should block, not error
 19. Very long context (50K tokens) - should route to larger model
 20. 1000 task_ids in StateManager - lookup should be O(1)
 
-### Error Handling:
+### Error Handling
+
 21. Ollama not running - should fail fast with clear error
 22. Disk full during event persist - should handle gracefully
 23. WebSocket client disconnects mid-broadcast - should continue
@@ -1638,12 +1782,13 @@ pytest tests/test_workflow_events.py tests/test_end_to_end.py -v --tb=long
 ## Final Pre-Implementation Checklist
 
 Before starting Phase 1:
+
 - [ ] Read this entire document
 - [ ] Understand all edge cases
 - [ ] Understand integration with existing code (events.py, streaming.py, state.py)
 - [ ] Have pytest installed and working
 - [ ] Have uvicorn installed (pip install uvicorn[standard])
-- [ ] Ollama running (http://localhost:11434)
+- [ ] Ollama running (<http://localhost:11434>)
 - [ ] Test existing workflow works (python -m src.mcp.server_runner)
 
 **Current Status**: ⏸️ Awaiting user approval and write access to `src/`
