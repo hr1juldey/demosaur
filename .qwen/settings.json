@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "context7": {
+      "httpUrl": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-f9a966e6-d121-49cc-937f-e5678a4fd2e4",
+        "Accept": "application/json, text/event-stream"
+      }
+    },
+    
+    "tavily": {
+      "httpUrl": "https://mcp.tavily.com/mcp/?tavilyApiKey=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",
+      "headers": {
+        "Accept": "application/json, text/event-stream"
+      }
+    }
+  },
+  "$version": 2
+}
