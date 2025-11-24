@@ -9,7 +9,7 @@ import dspy
 from dspy.primitives import PythonInterpreter
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 from src.common.config import settings
 

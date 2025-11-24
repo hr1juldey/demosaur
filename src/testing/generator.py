@@ -8,7 +8,7 @@ Follows SRP: Test generation only.
 import dspy
 from typing import List
 
-from src.common.types import ModuleSpec, TestSpec
+from src.common.types import ModuleSpec
 
 
 class TestGenSignature(dspy.Signature):

@@ -6,12 +6,11 @@ Follows SRP: FastMCP interface only.
 """
 
 from fastmcp import FastMCP
-from typing import Optional, List, Dict, Any
+from typing import Dict
 import asyncio
 
 from src.common.utils import generate_task_id
 from src.orchestrator.state import StateManager
-from src.orchestrator.workflow import WorkflowOrchestrator
 from src.orchestrator.logger import AsyncLogger, LogLevel
 from src.requirements.gatherer import RequirementGatherer
 

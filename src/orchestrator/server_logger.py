@@ -5,7 +5,6 @@ Tracks server lifecycle and MCP operations separately from tasks.
 Follows SRP: Server logging only.
 """
 
-from pathlib import Path
 from typing import Optional
 
 from src.orchestrator.logger import AsyncLogger, LogLevel

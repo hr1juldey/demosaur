@@ -5,14 +5,12 @@ Resources are read-only data sources Claude can access.
 Follows SRP: Resource definitions only.
 """
 
-from fastmcp import FastMCP
 from typing import Optional
 
 # Import from fastmcp_server
 from src.mcp.fastmcp_server import (
     mcp,
-    state_manager,
-    task_loggers
+    state_manager
 )
 from src.orchestrator.logger import LogLevel
 

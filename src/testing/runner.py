@@ -7,9 +7,7 @@ Follows SRP: Test execution only.
 
 import subprocess
 import tempfile
-import json
 from pathlib import Path
-from typing import Dict, Any
 
 from src.common.types import TestResults
 from src.common.config import settings

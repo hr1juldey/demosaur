@@ -7,7 +7,6 @@ Follows SRP: State persistence and retrieval only.
 
 from typing import Dict, Optional, Any
 from dataclasses import asdict
-import json
 
 from src.common.types import (
     TaskStatus,

@@ -5,15 +5,12 @@ Coordinates all phases of code generation workflow.
 Follows SRP: Workflow coordination only.
 """
 
-import asyncio
 from typing import Dict, Any
 
 from src.common.types import (
     TaskStatus,
-    Requirements,
     ModuleResult,
-    PerformanceMetrics,
-    TestResults
+    PerformanceMetrics
 )
 from src.common.config import settings
 from src.requirements.gatherer import RequirementGatherer

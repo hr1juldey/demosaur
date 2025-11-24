@@ -55,9 +55,9 @@ def run_http_server():
 
     PORT = 9876  # Uncommon port to avoid conflicts
 
-    print(f"[HTTP] Starting HTTP Debug Server", file=sys.stderr)
+    print("[HTTP] Starting HTTP Debug Server", file=sys.stderr)
     print(f"[HTTP] URL: http://localhost:{PORT}", file=sys.stderr)
-    print(f"[HTTP] Open in browser to test tools/resources", file=sys.stderr)
+    print("[HTTP] Open in browser to test tools/resources", file=sys.stderr)
     print("", file=sys.stderr)
 
     # Run HTTP server for debugging

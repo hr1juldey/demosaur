@@ -4,7 +4,7 @@ Event ordering and version validation utilities.
 Validates bug reports and events against current code version.
 """
 
-from typing import Dict, Tuple, List
+from typing import Tuple, List
 
 from src.events.event import Event
 from src.events.vector_clock import VectorClock

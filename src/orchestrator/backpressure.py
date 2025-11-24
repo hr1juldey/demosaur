@@ -4,7 +4,6 @@ Backpressure monitoring for task orchestrator.
 Monitors queue fill level and emits alerts when thresholds are exceeded.
 """
 
-import asyncio
 from typing import Optional, Callable
 from datetime import datetime, timedelta
 from enum import Enum

@@ -5,7 +5,6 @@ Manages server, workflow, and execution log streams separately.
 Follows SRP: Log stream separation only.
 """
 
-from pathlib import Path
 from typing import Optional
 
 from src.orchestrator.logger import AsyncLogger, LogLevel

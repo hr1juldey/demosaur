@@ -6,7 +6,6 @@ Follows SRP: Refinement orchestration only.
 """
 
 import dspy
-from typing import Dict, Any
 
 from src.common.types import (
     GeneratedCode,
