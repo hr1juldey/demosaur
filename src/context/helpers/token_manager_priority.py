@@ -5,17 +5,17 @@ Contains the priority enforcement method that was in the original token_manager.
 """
 
 from typing import List
-from context.tokens.token_manager import TokenManager
+from src.context.tokens.manager import TokenManager
 
 
 class TokenManagerPriority:
     """
     Priority-based token enforcement methods for TokenManager.
     """
-    
+
     def __init__(self, token_manager: TokenManager):
         self.token_manager = token_manager
-    
+
     def enforce_budget_with_priority(self,
                                    items: List[str],
                                    priorities: List[int]) -> List[str]:

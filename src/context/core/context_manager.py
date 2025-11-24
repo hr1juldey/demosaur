@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 import uuid
 
 from src.memory.core.mem0_client import Mem0Client
-from context.tokens.token_manager import TokenManager
+from src.context.tokens.manager import TokenManager
 from src.context.helpers.context_retrieval_helpers import retrieve_relevant_memories, build_recent_context_from_snapshots
 
 
