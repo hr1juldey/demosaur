@@ -1,6 +1,8 @@
 """
 Main chatbot orchestrator that coordinates all components.
 """
+import asyncio
+import concurrent.futures
 import random
 import time
 from typing import Dict, Any, Optional
@@ -33,6 +35,9 @@ class ChatbotOrchestrator:
         self.data_extractor = DataExtractionService()
         self.intent_classifier = IntentClassifier()  # LLM-based intent classifier
         self._message_count: Dict[str, int] = {}
+
+        # ThreadPoolExecutor for parallel processing
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
         # Define state transition matrix
         self._state_transition_matrix = {
@@ -250,8 +255,17 @@ class ChatbotOrchestrator:
 
         start_time = time.time()
 
-        # Detect user intent
-        intent = self.detect_intent(conversation_id, user_message)
+        # Run intent detection and data extraction in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit intent detection
+            intent_future = executor.submit(self.detect_intent, conversation_id, user_message)
+            
+            # Submit data extraction
+            extraction_future = executor.submit(self._extract_data_for_state, current_state, user_message)
+            
+            # Get results
+            intent = intent_future.result()
+            extracted_data = extraction_future.result()
 
         # Determine next state based on current state and intent
         next_state = self.get_next_state(current_state, intent)
@@ -276,17 +290,12 @@ class ChatbotOrchestrator:
         should_proceed = True
 
         if self._message_count[conversation_id] % config.SENTIMENT_CHECK_INTERVAL == 0:
+            # Perform sentiment analysis in parallel with other operations
             sentiment = self._analyze_sentiment(context, user_message)
             should_proceed = sentiment.should_proceed()
 
         # Simulate human-like response delay
         self.add_response_delay(user_message, sentiment)
-
-        # Extract data based on current state
-        extracted_data = self._extract_data_for_state(
-            next_state,  # Use next_state for extraction
-            user_message
-        )
 
         # Store extracted data
         if extracted_data:

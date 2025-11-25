@@ -32,7 +32,8 @@ class SentimentAnalysisService:
             metadata = ExtractionMetadata(
                 confidence=0.8,  # Default confidence for LLM analysis
                 extraction_method="chain_of_thought",
-                extraction_source=f"History: {conversation_history[:100]}... | Message: {current_message}"
+                extraction_source=f"History: {conversation_history[:100]}... | Message: {current_message}",
+                processing_time_ms=0.0
             )
 
             validated_scores = ValidatedSentimentScores(
@@ -59,7 +60,10 @@ class SentimentAnalysisService:
             numbers = re.findall(r'\d+\.?\d*', str(score_str))
             if numbers:
                 score = float(numbers[0])
-                return max(1.0, min(10.0, score))
+                # Clamp score to valid range of 1-10, but be more permissive than strict validation
+                clamped_score = max(1.0, min(10.0, score))
+                # Round to nearest half-point to match LLM output expectations
+                return round(clamped_score * 2) / 2  # Rounds to nearest 0.5
         except (ValueError, IndexError):
             pass
         return 5.0  # Default neutral
@@ -70,7 +74,8 @@ class SentimentAnalysisService:
         metadata = ExtractionMetadata(
             confidence=0.3,  # Low confidence for fallback
             extraction_method="fallback",
-            extraction_source=error_msg
+            extraction_source=error_msg,
+            processing_time_ms=0.0
         )
 
         return ValidatedSentimentScores(
