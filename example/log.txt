@@ -1,0 +1,1279 @@
+(demo) riju279@dream-machine:~/Downloads/demo/example$ uv run conversation_simulator.py
+
+🎬 Conversation Simulator Starting...
+
+✅ API is running. Starting simulations...
+
+
+################################################################################
+🚀 RUNNING 4 CONVERSATION SIMULATIONS
+################################################################################
+
+================================================================================
+🎭 CONVERSATION #1
+================================================================================
+
+👤 Customer [😐 neutral]: Hey there
+🤖 Chatbot: Hi there! How are you today? How can I assist you?
+
+┌─ 🤖 CHATBOT THINKING (Turn 1) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: neutral         😐
+│ ⏱️  Latency: 186.119s (Avg: 186.119s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: My car is dirty
+🤖 Chatbot: Ah, I see! It sounds like your car could use a good cleaning.
+
+┌─ 🤖 CHATBOT THINKING (Turn 2) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: interested      😐
+│ ⏱️  Latency: 14.134s (Avg: 100.127s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: Call me Arjun
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😊 happy]: Tell me rates
+🤖 Chatbot: Sure, Arjun! Here are our service rates: - **Basic Car Wash**: ₹300 (includes exterior cleaning) - **Detailed Interior Clean**: ₹500 (covers seats, dashboard,
+
+┌─ 🤖 CHATBOT THINKING (Turn 4) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: happy           😐
+│ ⏱️  Latency: 6.651s (Avg: 68.968s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: Can you give discount?
+🤖 Chatbot: Arjun, I understand you're looking for a good deal! Our standard rate for car wash services is $25, but since you're being considerate, let me check if we can adjust it slightly.
+
+┌─ 🤖 CHATBOT THINKING (Turn 5) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: neutral         😐
+│ ⏱️  Latency: 13.807s (Avg: 55.178s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: This is overpriced
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤨 skeptical]: What's included?
+🤖 Chatbot: Arjun, I completely understand your concern about the pricing! Our service includes 24/7 support, priority access to features, monthly security updates, and personalized onboarding.
+
+┌─ 🤖 CHATBOT THINKING (Turn 7) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: skeptical       😐
+│ ⏱️  Latency: 6.593s (Avg: 45.461s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Premium detailing please
+🤖 Chatbot: Certainly! Premium detailing includes advanced services like thorough exterior and interior cleaning, waxing, tire dressing, and a final inspection to ensure everything meets our highest standards.
+
+┌─ 🤖 CHATBOT THINKING (Turn 8) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: bored           😐
+│ ⏱️  Latency: 20.610s (Avg: 41.319s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Hyundai Creta
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😤 frustrated]: TN10XY3456
+🤖 Chatbot: Thank you for providing the registration number, TN10XY3456. I’ve noted your Hyundai Creta’s details and the request for premium detailing.
+
+┌─ 🤖 CHATBOT THINKING (Turn 10) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: vehicle_details           🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 17.004s (Avg: 37.846s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: When are you available?
+🤖 Chatbot: I'm here to help with your Premium Detailing service for your Hyundai Creta (TN10XY3456).
+
+┌─ 🤖 CHATBOT THINKING (Turn 11) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: happy           😐
+│ ⏱️  Latency: 48.064s (Avg: 39.123s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: Day after tomorrow
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: Too many questions
+🤖 Chatbot: I understand if you feel that way—sometimes going through multiple steps can be overwhelming.
+
+┌─ 🤖 CHATBOT THINKING (Turn 13) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: interested      😐
+│ ⏱️  Latency: 17.154s (Avg: 36.682s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: Can't we just book?
+🤖 Chatbot: I understand your frustration—let’s streamline this! To proceed, I’ll need you to select a tier (e. g. , basic, standard, premium) for your booking.
+
+┌─ 🤖 CHATBOT THINKING (Turn 14) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: happy           😐
+│ ⏱️  Latency: 8.624s (Avg: 33.876s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: This is annoying
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😐 neutral]: Your competitor is easier
+🤖 Chatbot: I'm sorry for the frustration—this process should be smoother.
+
+┌─ 🤖 CHATBOT THINKING (Turn 16) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: neutral         😐
+│ ⏱️  Latency: 42.429s (Avg: 34.654s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: Let's proceed
+🤖 Chatbot: I apologize for the frustration—let me simplify this for you. To expedite, I’ll select the most common service option for you.
+
+┌─ 🤖 CHATBOT THINKING (Turn 17) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: neutral         😐
+│ ⏱️  Latency: 18.429s (Avg: 33.302s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: Why should I choose you?
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😠 angry]: Not bad
+🤖 Chatbot: I understand why you might think that—competitors can sometimes feel more straightforward.
+
+┌─ 🤖 CHATBOT THINKING (Turn 19) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: angry           😐
+│ ⏱️  Latency: 15.035s (Avg: 31.897s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: First time customer discount?
+🤖 Chatbot: Of course! As a first-time customer, you’re eligible for a special discount.
+
+┌─ 🤖 CHATBOT THINKING (Turn 20) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: interested      😐
+│ ⏱️  Latency: 13.714s (Avg: 30.598s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Fine, go ahead
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😠 angry]: Hold on
+🤖 Chatbot: No problem at all! Take your time to review the details. If you have any questions or need further assistance, feel free to ask.
+
+┌─ 🤖 CHATBOT THINKING (Turn 22) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: angry           😐
+│ ⏱️  Latency: 19.448s (Avg: 29.854s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Can I reschedule?
+🤖 Chatbot: Of course, I'd be happy to help you reschedule. Could you please provide the details or let me know your preferred date and time?
+
+┌─ 🤖 CHATBOT THINKING (Turn 23) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 5.317s (Avg: 28.321s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: Let's go ahead
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😐 neutral]: Great
+🤖 Chatbot: Great! I'm glad we could adjust the schedule. If you need any further assistance or have additional questions, feel free to reach out. Have a wonderful day!
+
+┌─ 🤖 CHATBOT THINKING (Turn 25) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: completed                 🎭 Mood: neutral         😐
+│ ⏱️  Latency: 14.492s (Avg: 27.507s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+📊 CONVERSATION SUMMARY
+================================================================================
+  Turns: 17   |  Total Time: 467.63s  |  Avg: 27.507s
+  Min: 5.317s  |  Max: 186.119s
+  Extractions: 0  |  Sentiment Checks: 0
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+🎭 CONVERSATION #2
+================================================================================
+
+👤 Customer [🤨 skeptical]: Good morning
+🤖 Chatbot: Good morning! How can I assist you today?
+
+┌─ 🤖 CHATBOT THINKING (Turn 1) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: skeptical       😐
+│ ⏱️  Latency: 9.175s (Avg: 9.175s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: My car is dirty
+🤖 Chatbot: I'm sorry to hear your car is dirty. Let me help you with that! Are you looking for assistance with washing your car or something else?
+
+┌─ 🤖 CHATBOT THINKING (Turn 2) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: bored           😐
+│ ⏱️  Latency: 17.970s (Avg: 13.572s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: I'm Sneha Patel
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😤 frustrated]: Tell me rates
+🤖 Chatbot: Good morning, Sneha! I'm sorry to hear your car is dirty – it’s always frustrating.
+
+┌─ 🤖 CHATBOT THINKING (Turn 4) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 7.425s (Avg: 11.523s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: That's too much
+🤖 Chatbot: I'm sorry for the inconvenience, Sneha! I understand that the rate might feel higher than expected.
+
+┌─ 🤖 CHATBOT THINKING (Turn 5) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: skeptical       😐
+│ ⏱️  Latency: 11.990s (Avg: 11.640s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Can you match their price?
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: Tell me options
+🤖 Chatbot: Certainly, Sneha! Let me share our tiered options:  
+1. **Basic Tier** - Affordable entry-level service with core features (starting at ₹1,200/month)  
+2.
+
+┌─ 🤖 CHATBOT THINKING (Turn 7) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: interested      😐
+│ ⏱️  Latency: 8.135s (Avg: 10.939s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Full service
+🤖 Chatbot: Certainly! Our Full Service package includes everything from expert consultations to comprehensive support, all at a price that matches industry standards.
+
+┌─ 🤖 CHATBOT THINKING (Turn 8) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: angry           😐
+│ ⏱️  Latency: 7.639s (Avg: 10.389s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: Tata Nexon
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😠 angry]: Number is DL04C5678
+🤖 Chatbot: Thank you for providing the registration number, DL04C5678. Your Tata Nexon details are noted, and we're ready to assist with your full service request.
+
+┌─ 🤖 CHATBOT THINKING (Turn 10) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: vehicle_details           🎭 Mood: angry           😐
+│ ⏱️  Latency: 17.743s (Avg: 11.439s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: When are you available?
+🤖 Chatbot: Sure! Could you let me know the date you're available for the service? For example, "Are you available on October 15th?"
+
+┌─ 🤖 CHATBOT THINKING (Turn 11) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: happy           😐
+│ ⏱️  Latency: 21.963s (Avg: 12.755s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: Tomorrow works
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😴 bored]: Too many questions
+🤖 Chatbot: I understand if you feel there are a lot of steps—thank you for your patience! To make this easier, I’ll help you pick the right service for your Tata Nexon.
+
+┌─ 🤖 CHATBOT THINKING (Turn 13) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: bored           😐
+│ ⏱️  Latency: 15.270s (Avg: 13.034s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Why do you need all this info?
+🤖 Chatbot: I understand your concern—collecting information can feel overwhelming! Rest assured, your details are only used to ensure we provide the best service tailored to your needs.
+
+┌─ 🤖 CHATBOT THINKING (Turn 14) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 7.673s (Avg: 12.498s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: I don't have time
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😴 bored]: Your competitor is easier
+🤖 Chatbot: I completely understand that filling out details can feel time-consuming—I appreciate you bringing that up.
+
+┌─ 🤖 CHATBOT THINKING (Turn 16) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: bored           😐
+│ ⏱️  Latency: 22.154s (Avg: 13.376s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Fine, continue
+🤖 Chatbot: I understand your frustration—let’s make this easier.
+
+┌─ 🤖 CHATBOT THINKING (Turn 17) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: bored           😐
+│ ⏱️  Latency: 20.841s (Avg: 13.998s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Why should I choose you?
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: Acceptable
+🤖 Chatbot: Your choice is perfectly fine! We’ve selected a tier that balances efficiency and value, ensuring you get the most out of your time.
+
+┌─ 🤖 CHATBOT THINKING (Turn 19) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: interested      😐
+│ ⏱️  Latency: 17.959s (Avg: 14.303s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Can I get a discount?
+🤖 Chatbot: While I can't offer discounts, I can assure you that our services provide unmatched value, reliability, and support—qualities that set us apart from competitors.
+
+┌─ 🤖 CHATBOT THINKING (Turn 20) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: bored           😐
+│ ⏱️  Latency: 7.041s (Avg: 13.784s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Alright, let's book
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😊 happy]: Before we confirm
+🤖 Chatbot: Great! I'm glad we're ready to proceed. If you need any last-minute adjustments or have questions before confirming, feel free to ask.
+
+┌─ 🤖 CHATBOT THINKING (Turn 22) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: happy           😐
+│ ⏱️  Latency: 11.775s (Avg: 13.650s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Payment options?
+🤖 Chatbot: Of course! We accept major credit cards (Visa, Mastercard, Discover), PayPal, and Apple Pay for secure payments.
+
+┌─ 🤖 CHATBOT THINKING (Turn 23) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: angry           😐
+│ ⏱️  Latency: 7.132s (Avg: 13.243s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Book it
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😠 angry]: Great
+🤖 Chatbot: Awesome! Your booking is all set. If you need any further assistance, feel free to ask. Have a great day!
+
+┌─ 🤖 CHATBOT THINKING (Turn 25) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: completed                 🎭 Mood: angry           😐
+│ ⏱️  Latency: 23.008s (Avg: 13.817s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+📊 CONVERSATION SUMMARY
+================================================================================
+  Turns: 17   |  Total Time: 234.89s  |  Avg: 13.817s
+  Min: 7.041s  |  Max: 23.008s
+  Extractions: 0  |  Sentiment Checks: 0
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+🎭 CONVERSATION #3
+================================================================================
+
+👤 Customer [😐 neutral]: Namaste
+🤖 Chatbot: Namaste! Hello, how can I assist you today?
+
+┌─ 🤖 CHATBOT THINKING (Turn 1) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: neutral         😐
+│ ⏱️  Latency: 9.189s (Avg: 9.189s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: My car is dirty
+🤖 Chatbot: Namaste! It seems your car could use a good clean.
+
+┌─ 🤖 CHATBOT THINKING (Turn 2) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: bored           😐
+│ ⏱️  Latency: 15.050s (Avg: 12.119s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: I'm Rahul
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😤 frustrated]: What's the cost?
+🤖 Chatbot: Sure, Rahul! Could you please specify the type of service you need? For example, are you looking for a standard car wash, detailing, or something else? This
+
+┌─ 🤖 CHATBOT THINKING (Turn 4) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 21.742s (Avg: 15.327s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Competitors charge less
+🤖 Chatbot: Rahul, I understand you're looking for a good value! Could you clarify which service you need—like a standard car wash or detailed cleaning? Once I know the specific service, I can share the pricing and help you compare options.
+
+┌─ 🤖 CHATBOT THINKING (Turn 5) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 7.787s (Avg: 13.442s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: My friend got 20% off
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😠 angry]: Tell me options
+🤖 Chatbot: Rahul, I completely understand that pricing is a key consideration—especially with competitors offering discounts.
+
+┌─ 🤖 CHATBOT THINKING (Turn 7) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: angry           😐
+│ ⏱️  Latency: 8.229s (Avg: 12.399s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: I want the basic wash
+🤖 Chatbot: Great, the basic wash is our most affordable option! It costs $15, which includes a standard clean and inspection.
+
+┌─ 🤖 CHATBOT THINKING (Turn 8) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: angry           😐
+│ ⏱️  Latency: 6.956s (Avg: 11.492s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: Tata Nexon
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😴 bored]: Number is DL04C5678
+🤖 Chatbot: Thank you for providing the registration number, DL04C5678. To confirm, your friend is getting a 20% discount on the basic wash for the Tata Nexon.
+
+┌─ 🤖 CHATBOT THINKING (Turn 10) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: vehicle_details           🎭 Mood: bored           😐
+│ ⏱️  Latency: 12.993s (Avg: 11.707s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: I need it today
+🤖 Chatbot: Got it! Your Tata Nexon (Registration: DL04C5678) basic wash is confirmed for today. We’ll ensure it’s completed as quickly as possible.
+
+┌─ 🤖 CHATBOT THINKING (Turn 11) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: happy           😐
+│ ⏱️  Latency: 7.211s (Avg: 11.145s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Tomorrow works
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😴 bored]: Let me think
+🤖 Chatbot: Take your time—no rush at all! If you'd like, I can share more details about the services available for your Tata Nexon or help you explore options that fit your schedule.
+
+┌─ 🤖 CHATBOT THINKING (Turn 13) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: bored           😐
+│ ⏱️  Latency: 22.807s (Avg: 12.440s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Why do you need all this info?
+🤖 Chatbot: Thank you for your question! We collect this information to ensure we can process your request accurately and provide the best service for your needs.
+
+┌─ 🤖 CHATBOT THINKING (Turn 14) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: angry           😐
+│ ⏱️  Latency: 6.709s (Avg: 11.867s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: I don't have time
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😐 neutral]: Maybe I should go elsewhere
+🤖 Chatbot: I completely understand—life gets busy, and it's totally okay to need more time or space.
+
+┌─ 🤖 CHATBOT THINKING (Turn 16) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: neutral         😐
+│ ⏱️  Latency: 48.404s (Avg: 15.189s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: Okay I'm interested
+🤖 Chatbot: I understand that you've been busy and have questions—thank you for sharing that! Collecting this information helps us ensure we provide the best possible service tailored to your needs.
+
+┌─ 🤖 CHATBOT THINKING (Turn 17) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: neutral         😐
+│ ⏱️  Latency: 16.311s (Avg: 15.282s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: Any guarantees?
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😊 happy]: I guess that works
+🤖 Chatbot: No problem at all—your choice is perfectly fine! If you’re ever unsure or need help navigating options, just let me know.
+
+┌─ 🤖 CHATBOT THINKING (Turn 19) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: happy           😐
+│ ⏱️  Latency: 16.174s (Avg: 15.351s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: Any offers running?
+🤖 Chatbot: I understand you're looking for the best options! Currently, we have a few limited-time offers available that might interest you.
+
+┌─ 🤖 CHATBOT THINKING (Turn 20) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: happy           😐
+│ ⏱️  Latency: 6.215s (Avg: 14.698s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: Alright, let's book
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😴 bored]: Hold on
+🤖 Chatbot: Of course, take your time! Is there anything I can clarify or adjust before we proceed? I'm here to help ensure everything meets your needs. 😊
+
+┌─ 🤖 CHATBOT THINKING (Turn 22) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: bored           😐
+│ ⏱️  Latency: 12.316s (Avg: 14.540s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😐 neutral]: Payment options?
+🤖 Chatbot: Sure! We accept major credit cards, PayPal, and bank transfers.
+
+┌─ 🤖 CHATBOT THINKING (Turn 23) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: neutral         😐
+│ ⏱️  Latency: 6.059s (Avg: 14.010s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Yes, finalize
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😐 neutral]: Thanks
+🤖 Chatbot: You're welcome! I'm glad we could finalize your booking. If you have any questions or need further assistance, feel free to reach out. Have a great day!
+
+┌─ 🤖 CHATBOT THINKING (Turn 25) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: completed                 🎭 Mood: neutral         😐
+│ ⏱️  Latency: 13.745s (Avg: 13.994s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+📊 CONVERSATION SUMMARY
+================================================================================
+  Turns: 17   |  Total Time: 237.90s  |  Avg: 13.994s
+  Min: 6.059s  |  Max: 48.404s
+  Extractions: 0  |  Sentiment Checks: 0
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+🎭 CONVERSATION #4
+================================================================================
+
+👤 Customer [😴 bored]: Hello
+🤖 Chatbot: Hello! How can I assist you today? I'm here to help with anything you need. 😊
+
+┌─ 🤖 CHATBOT THINKING (Turn 1) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: bored           😐
+│ ⏱️  Latency: 8.635s (Avg: 8.635s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: I need a car wash
+🤖 Chatbot: Hello! Could you please share your name so I can assist you with the car wash?
+
+┌─ 🤖 CHATBOT THINKING (Turn 2) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: greeting                  🎭 Mood: skeptical       😐
+│ ⏱️  Latency: 12.525s (Avg: 10.580s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Amit here
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: Prices?
+🤖 Chatbot: Hi Amit! For a standard car wash, our prices start at $15 for a basic wash and $25 for a premium package that includes wax.
+
+┌─ 🤖 CHATBOT THINKING (Turn 4) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: interested      😐
+│ ⏱️  Latency: 8.052s (Avg: 9.737s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: Competitors charge less
+🤖 Chatbot: I understand you're looking for good value - many customers do compare prices.
+
+┌─ 🤖 CHATBOT THINKING (Turn 5) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: skeptical       😐
+│ ⏱️  Latency: 6.755s (Avg: 8.992s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: Can you match their price?
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: What do you offer?
+🤖 Chatbot: Amit, great question! While we're proud to offer competitive pricing, our true value lies in the comprehensive services we provide across three tiers: Basic, Standard, and Premium.
+
+┌─ 🤖 CHATBOT THINKING (Turn 7) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: interested      😐
+│ ⏱️  Latency: 8.774s (Avg: 8.948s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Full service
+🤖 Chatbot: Thank you for specifying full service - that includes comprehensive support, premium features, and dedicated assistance.
+
+┌─ 🤖 CHATBOT THINKING (Turn 8) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: bored           😐
+│ ⏱️  Latency: 5.880s (Avg: 8.437s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😴 bored]: Hyundai Creta
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: TN10XY3456
+🤖 Chatbot: Thank you for providing the registration number TN10XY3456 for your Hyundai Creta. I’ve noted the details.
+
+┌─ 🤖 CHATBOT THINKING (Turn 10) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: vehicle_details           🎭 Mood: interested      😐
+│ ⏱️  Latency: 29.236s (Avg: 11.408s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: Can you do it tomorrow?
+🤖 Chatbot: Great! I've noted 2025-11-26 for your appointment.
+
+┌─ 🤖 CHATBOT THINKING (Turn 11) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: skeptical       😐
+│ ⏱️  Latency: 15.475s (Avg: 11.916s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: {'appointment_date': '2025-11-26'}
+│ 💡 ACTIONS: Sentiment✗  Extract✓  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Next Monday
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😐 neutral]: Too many questions
+🤖 Chatbot: I understand if you feel there are too many steps—let me make this easier! Since you mentioned the Hyundai Creta and provided the VIN, I’ll streamline the process.
+
+┌─ 🤖 CHATBOT THINKING (Turn 13) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: neutral         😐
+│ ⏱️  Latency: 24.168s (Avg: 13.278s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤔 interested]: This is taking too long
+🤖 Chatbot: I apologize for the inconvenience – I understand this might feel time-consuming. Let me expedite this for you.
+
+┌─ 🤖 CHATBOT THINKING (Turn 14) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: interested      😐
+│ ⏱️  Latency: 16.801s (Avg: 13.630s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [🤨 skeptical]: I don't have time
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: This is too much hassle
+🤖 Chatbot: I completely understand why this feels overwhelming—thank you for sharing that. Let me make this as easy as possible for you.
+
+┌─ 🤖 CHATBOT THINKING (Turn 16) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: date_selection            🎭 Mood: interested      😐
+│ ⏱️  Latency: 23.792s (Avg: 14.554s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😊 happy]: Actually, tell me more
+🤖 Chatbot: I'm sorry if you felt overwhelmed earlier—I want to make this as smooth as possible.
+
+┌─ 🤖 CHATBOT THINKING (Turn 17) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: service_selection         🎭 Mood: happy           😐
+│ ⏱️  Latency: 23.547s (Avg: 15.303s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Why should I choose you?
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😠 angry]: Not bad
+🤖 Chatbot: I hear you—sometimes it can feel overwhelming to decide.
+
+┌─ 🤖 CHATBOT THINKING (Turn 19) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: tier_selection            🎭 Mood: angry           😐
+│ ⏱️  Latency: 18.697s (Avg: 15.564s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😠 angry]: Any offers running?
+🤖 Chatbot: I understand your interest! Currently, we're running a limited-time offer for new customers, which includes a discount on your first service.
+
+┌─ 🤖 CHATBOT THINKING (Turn 20) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: angry           😐
+│ ⏱️  Latency: 5.975s (Avg: 14.879s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Okay I'm convinced
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [🤔 interested]: Wait, one more thing
+🤖 Chatbot: Of course! If you have any last questions or need further clarification, feel free to ask.
+
+┌─ 🤖 CHATBOT THINKING (Turn 22) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: interested      😐
+│ ⏱️  Latency: 12.300s (Avg: 14.707s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Payment options?
+🤖 Chatbot: Sure! We accept major credit cards, PayPal, and bank transfers. Let me know which option works best for you, and I’ll finalize the details!
+
+┌─ 🤖 CHATBOT THINKING (Turn 23) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: confirmation              🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 5.045s (Avg: 14.104s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+👤 Customer [😤 frustrated]: Book it
+   ❌ Error: {"detail":"Invalid state: 1 validation error for ExtractionMetadata\nprocessing_time_ms\n  Field required [type=missing, input_value={'confidence': 0.3, 'extr...tic.dev/2.12/v/missing'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"}
+
+👤 Customer [😤 frustrated]: Goodbye
+🤖 Chatbot: Have a great day! If you have any more questions or need further assistance, feel free to reach out. Safe travels! 😊
+
+┌─ 🤖 CHATBOT THINKING (Turn 25) ──────────────────────────────────────────────────────
+│
+│ 🎯 State: completed                 🎭 Mood: frustrated      😐
+│ ⏱️  Latency: 16.029s (Avg: 14.217s)
+│ ✅ Proceed: True
+│
+│ 📊 SENTIMENT: Not analyzed         Anger=-     Boredom=-
+│ 📦 EXTRACTED: None
+│ 💡 ACTIONS: Sentiment✗  Extract✗  Normal
+│
+└────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+📊 CONVERSATION SUMMARY
+================================================================================
+  Turns: 17   |  Total Time: 241.69s  |  Avg: 14.217s
+  Min: 5.045s  |  Max: 29.236s
+  Extractions: 1  |  Sentiment Checks: 0
+================================================================================
+
+
+################################################################################
+🎯 OVERALL SUMMARY - 4 CONVERSATIONS
+################################################################################
+
+  📈 PERFORMANCE METRICS:
+     Total Turns: 68
+     Total Time: 1182.10s
+     Avg per Turn: 17.384s
+     Range: 5.045s - 186.119s
+
+  🎯 INTELLIGENCE METRICS:
+     Data Extractions: 1
+     Sentiment Checks: 0
+     Success Rate: 1.5%
+
+################################################################################
+
+
+✅ All simulations completed!
+
+(demo) riju279@dream-machine:~/Downloads/demo/example$

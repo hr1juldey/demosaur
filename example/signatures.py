@@ -6,14 +6,14 @@ import dspy
 
 class SentimentAnalysisSignature(dspy.Signature):
     """Analyze customer sentiment across multiple dimensions."""
-    
+
     conversation_history = dspy.InputField(
         desc="Recent conversation messages between user and assistant"
     )
     current_message = dspy.InputField(
         desc="Current user message to analyze"
     )
-    
+
     reasoning = dspy.OutputField(
         desc="Brief explanation of the sentiment analysis"
     )
@@ -36,14 +36,14 @@ class SentimentAnalysisSignature(dspy.Signature):
 
 class NameExtractionSignature(dspy.Signature):
     """Extract customer name from unstructured input."""
-    
+
     user_message = dspy.InputField(
         desc="User's message that may contain their name"
     )
     context = dspy.InputField(
         desc="Conversation context indicating we're collecting name"
     )
-    
+
     first_name = dspy.OutputField(
         desc="Extracted first name only, properly capitalized"
     )
@@ -57,11 +57,11 @@ class NameExtractionSignature(dspy.Signature):
 
 class VehicleDetailsExtractionSignature(dspy.Signature):
     """Extract vehicle details from unstructured input."""
-    
+
     user_message = dspy.InputField(
         desc="User's message containing vehicle information"
     )
-    
+
     brand = dspy.OutputField(
         desc="Vehicle brand/make (e.g., Toyota, Honda, BMW)"
     )
@@ -75,14 +75,14 @@ class VehicleDetailsExtractionSignature(dspy.Signature):
 
 class DateParsingSignature(dspy.Signature):
     """Parse natural language date into structured format."""
-    
+
     user_message = dspy.InputField(
         desc="User's message containing date/day reference"
     )
     current_date = dspy.InputField(
         desc="Today's date for reference (YYYY-MM-DD format)"
     )
-    
+
     parsed_date = dspy.OutputField(
         desc="Parsed date in YYYY-MM-DD format"
     )
@@ -93,7 +93,7 @@ class DateParsingSignature(dspy.Signature):
 
 class ResponseGenerationSignature(dspy.Signature):
     """Generate empathetic, context-aware response."""
-    
+
     conversation_history = dspy.InputField(
         desc="Recent conversation context"
     )
@@ -106,7 +106,26 @@ class ResponseGenerationSignature(dspy.Signature):
     sentiment_context = dspy.InputField(
         desc="Current sentiment analysis summary"
     )
-    
+
     response = dspy.OutputField(
         desc="Natural, empathetic response that maintains conversation flow"
     )
+
+
+class IntentClassificationSignature(dspy.Signature):
+    """Classify user intent from message in context."""
+
+    conversation_history = dspy.InputField(
+        desc="Recent conversation context to understand user's intent"
+    )
+    current_message = dspy.InputField(
+        desc="Current user message to classify"
+    )
+
+    reasoning = dspy.OutputField(
+        desc="Step-by-step reasoning for the intent classification"
+    )
+    intent_class = dspy.OutputField(
+        desc="The classified intent (one of: book, inquire, complaint, small_talk, cancel, reschedule, payment)"
+    )
+

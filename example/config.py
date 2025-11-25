@@ -34,7 +34,7 @@ class Config:
     
     # DSPy/LLM Settings
     OLLAMA_BASE_URL = "http://localhost:11434"
-    MODEL_NAME = "qwen3:30b"  # 3B parameter model for CPU
+    MODEL_NAME = "qwen3:8b"  # 8B parameter model for CPU
     MAX_TOKENS = 4000
     TEMPERATURE = 0.5  # Lower for consistency
     
