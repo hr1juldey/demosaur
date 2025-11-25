@@ -19,7 +19,7 @@ class SentimentAnalyzer(dspy.Module):
         super().__init__()
         self.predictor = dspy.ChainOfThought(SentimentAnalysisSignature)
 
-    def forward(self, conversation_history: str, current_message: str):
+    def forward(self, conversation_history: dspy.History, current_message: str):
         """Analyze sentiment."""
         result = self.predictor(
             conversation_history=conversation_history,
@@ -35,7 +35,7 @@ class IntentClassifier(dspy.Module):
         super().__init__()
         self.predictor = dspy.ChainOfThought(IntentClassificationSignature)
 
-    def forward(self, conversation_history: str, current_message: str):
+    def forward(self, conversation_history: dspy.History, current_message: str):
         """Classify user intent."""
         result = self.predictor(
             conversation_history=conversation_history,
@@ -51,9 +51,10 @@ class NameExtractor(dspy.Module):
         super().__init__()
         self.predictor = dspy.ChainOfThought(NameExtractionSignature)
 
-    def forward(self, user_message: str, context: str = "collecting customer name"):
+    def forward(self, conversation_history: dspy.History, user_message: str, context: str = "collecting customer name"):
         """Extract name."""
         result = self.predictor(
+            conversation_history=conversation_history,
             user_message=user_message,
             context=context
         )
@@ -67,9 +68,12 @@ class VehicleDetailsExtractor(dspy.Module):
         super().__init__()
         self.predictor = dspy.ChainOfThought(VehicleDetailsExtractionSignature)
 
-    def forward(self, user_message: str):
+    def forward(self, conversation_history: dspy.History, user_message: str):
         """Extract vehicle details."""
-        result = self.predictor(user_message=user_message)
+        result = self.predictor(
+            conversation_history=conversation_history,
+            user_message=user_message
+        )
         return result
 
 
@@ -80,9 +84,10 @@ class DateParser(dspy.Module):
         super().__init__()
         self.predictor = dspy.ChainOfThought(DateParsingSignature)
 
-    def forward(self, user_message: str, current_date: str):
+    def forward(self, conversation_history: dspy.History, user_message: str, current_date: str):
         """Parse date from natural language."""
         result = self.predictor(
+            conversation_history=conversation_history,
             user_message=user_message,
             current_date=current_date
         )
@@ -98,7 +103,7 @@ class EmpathyResponseGenerator(dspy.Module):
 
     def forward(
         self,
-        conversation_history: str,
+        conversation_history: dspy.History,
         current_state: str,
         user_message: str,
         sentiment_context: str

@@ -1,6 +1,6 @@
 # AI ReAct Agent Pipeline Bug Fixes for Intelligent Chatbot - DETAILED TODO
 
-# Project: @example/** - DSPy-powered WhatsApp Chatbot
+## Project: @example/** - DSPy-powered WhatsApp Chatbot
 
 ## Executive Summary
 
@@ -37,8 +37,8 @@ Based on the system architecture documented in `@example/architecture.md`:
 │  ┌──────────┴────────────┬───────────────────┐      │
 │  ▼                       ▼                   ▼      │
 │  ┌──────────────┐  ┌──────────────┐  ┌─────────┐    │
-│  │  Sentiment   │  │     Data      │  │  Conv. │    │
-│  │  Analyzer    │  │  Extractor    │  │ Manager│    │
+│  │  Sentiment   │  │     Data      │ │  Conv.  │    │
+│  │  Analyzer    │  │  Extractor    │ │ Manager │    │
 │  └──────────────┘  └──────────────┘  └─────────┘    │
 │         │                  │                │       │
 │         └──────────┬───────┴────────────────┘       │

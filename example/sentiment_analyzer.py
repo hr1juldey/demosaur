@@ -1,6 +1,7 @@
 """
 Sentiment analysis service for customer emotions.
 """
+import dspy
 from typing import Dict
 from modules import SentimentAnalyzer
 from config import config
@@ -17,7 +18,7 @@ class SentimentAnalysisService:
 
     def analyze(
         self,
-        conversation_history: str,
+        conversation_history: dspy.History,
         current_message: str
     ) -> ValidatedSentimentScores:
         """Analyze sentiment from conversation."""
@@ -32,7 +33,7 @@ class SentimentAnalysisService:
             metadata = ExtractionMetadata(
                 confidence=0.8,  # Default confidence for LLM analysis
                 extraction_method="chain_of_thought",
-                extraction_source=f"History: {conversation_history[:100]}... | Message: {current_message}",
+                extraction_source=f"History: {str(conversation_history)[:100]}... | Message: {current_message}",
                 processing_time_ms=0.0
             )
 

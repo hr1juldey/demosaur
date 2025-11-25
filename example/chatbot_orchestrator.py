@@ -5,6 +5,7 @@ import asyncio
 import concurrent.futures
 import random
 import time
+import dspy
 from typing import Dict, Any, Optional
 from enum import Enum
 from config import config, ConversationState
@@ -95,7 +96,7 @@ class ChatbotOrchestrator:
             return Intent.SMALL_TALK
         return best_intent
 
-    def detect_intent_llm_based(self, conversation_history: str, user_message: str) -> Intent:
+    def detect_intent_llm_based(self, conversation_history: dspy.History, user_message: str) -> Intent:
         """Detect user intent using LLM-based classification."""
         try:
             from modules import IntentClassifier
@@ -120,7 +121,13 @@ class ChatbotOrchestrator:
 
         # Get conversation history for context
         context = self.conversation_manager.get_or_create(conversation_id)
-        conversation_history = context.get_history_text(max_messages=5)
+        # Create dspy.History object with conversation messages
+        dspy_history = dspy.History(messages=[])
+        for message in context.messages:
+            dspy_history.messages.append({
+                "role": message.role,
+                "content": message.content
+            })
 
         # Check if keyword-based detection confidence is low, or if user seems dissatisfied
         low_keyword_confidence = keyword_intent == Intent.SMALL_TALK
@@ -128,7 +135,7 @@ class ChatbotOrchestrator:
 
         # Use LLM-based detection for validation if confidence is low or disagreement detected
         if low_keyword_confidence or user_correction:
-            llm_intent = self.detect_intent_llm_based(conversation_history, user_message)
+            llm_intent = self.detect_intent_llm_based(dspy_history, user_message)
             # If both methods agree, return the result
             if keyword_intent == llm_intent or not low_keyword_confidence:
                 return llm_intent
@@ -259,10 +266,10 @@ class ChatbotOrchestrator:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             # Submit intent detection
             intent_future = executor.submit(self.detect_intent, conversation_id, user_message)
-            
-            # Submit data extraction
-            extraction_future = executor.submit(self._extract_data_for_state, current_state, user_message)
-            
+
+            # Submit data extraction - now with conversation_id for history context
+            extraction_future = executor.submit(self._extract_data_for_state, current_state, user_message, conversation_id)
+
             # Get results
             intent = intent_future.result()
             extracted_data = extraction_future.result()
@@ -285,11 +292,20 @@ class ChatbotOrchestrator:
             self._message_count[conversation_id] = 0
         self._message_count[conversation_id] += 1
 
-        # Analyze sentiment periodically
+        # Analyze sentiment - now check for emotional context and call on every turn if needed
         sentiment = None
         should_proceed = True
 
-        if self._message_count[conversation_id] % config.SENTIMENT_CHECK_INTERVAL == 0:
+        # Check if user expresses emotional language that warrants sentiment analysis
+        emotional_indicators = [
+            'angry', 'frustrated', 'happy', 'excited', 'sad', 'disappointed',
+            'confused', 'annoyed', 'pleased', 'satisfied', 'angry', 'mad',
+            'upset', 'stressed', 'worried', 'concerned', 'bored', 'skeptical'
+        ]
+        has_emotional_indicators = any(indicator in user_message.lower() for indicator in emotional_indicators)
+
+        # Perform sentiment analysis either periodically OR when emotional indicators are present
+        if (self._message_count[conversation_id] % config.SENTIMENT_CHECK_INTERVAL == 0) or has_emotional_indicators:
             # Perform sentiment analysis in parallel with other operations
             sentiment = self._analyze_sentiment(context, user_message)
             should_proceed = sentiment.should_proceed()
@@ -351,18 +367,36 @@ class ChatbotOrchestrator:
         current_message: str
     ) -> ValidatedSentimentScores:
         """Analyze customer sentiment."""
-        history = context.get_history_text(max_messages=10)
-        return self.sentiment_service.analyze(history, current_message)
+        # Create dspy.History object with conversation messages for proper DSPy history management
+        dspy_history = dspy.History(messages=[])
+        for message in context.messages:
+            dspy_history.messages.append({
+                "role": message.role,
+                "content": message.content
+            })
+
+        return self.sentiment_service.analyze(dspy_history, current_message)
 
     def _extract_data_for_state(
         self,
         state: ConversationState,
-        user_message: str
+        user_message: str,
+        conversation_id: str
     ) -> Optional[Dict[str, Any]]:
         """Extract relevant data based on current state."""
 
+        # Get conversation context for history
+        context = self.conversation_manager.get_or_create(conversation_id)
+        # Create dspy.History object with conversation messages
+        history = dspy.History(messages=[])
+        for message in context.messages:
+            history.messages.append({
+                "role": message.role,
+                "content": message.content
+            })
+
         if state == ConversationState.NAME_COLLECTION:
-            name_data = self.data_extractor.extract_name(user_message)
+            name_data = self.data_extractor.extract_name(user_message, conversation_history=history)
             if name_data:
                 return {
                     "first_name": name_data.first_name,
@@ -371,7 +405,7 @@ class ChatbotOrchestrator:
                 }
 
         elif state == ConversationState.VEHICLE_DETAILS:
-            vehicle_data = self.data_extractor.extract_vehicle_details(user_message)
+            vehicle_data = self.data_extractor.extract_vehicle_details(user_message, conversation_history=history)
             if vehicle_data:
                 return {
                     "vehicle_brand": vehicle_data.brand,
@@ -380,7 +414,7 @@ class ChatbotOrchestrator:
                 }
 
         elif state == ConversationState.DATE_SELECTION:
-            date_data = self.data_extractor.parse_date(user_message)
+            date_data = self.data_extractor.parse_date(user_message, conversation_history=history)
             if date_data:
                 return {"appointment_date": date_data.date_str}
             # Fallback to rule-based

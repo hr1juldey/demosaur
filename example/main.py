@@ -166,11 +166,11 @@ async def analyze_sentiment(request: SentimentRequest, req: Request):
         )
 
         return {
-            "sentiment": sentiment.to_dict(),
-            "should_proceed": sentiment.should_proceed(),
-            "needs_engagement": sentiment.needs_engagement(),
-            "should_disengage": sentiment.should_disengage(),
-            "reasoning": sentiment.reasoning
+            "sentiment": sentiment.to_dict() if hasattr(sentiment, 'to_dict') else vars(sentiment),
+            "should_proceed": sentiment.should_proceed() if hasattr(sentiment, 'should_proceed') else True,
+            "needs_engagement": sentiment.needs_engagement() if hasattr(sentiment, 'needs_engagement') else False,
+            "should_disengage": sentiment.should_disengage() if hasattr(sentiment, 'should_disengage') else False,
+            "reasoning": getattr(sentiment, 'reasoning', 'No reasoning available')
         }
     except Exception as e:
         logger.exception("Error analyzing sentiment: %s", e)

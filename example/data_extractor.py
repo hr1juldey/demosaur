@@ -1,10 +1,12 @@
 """
 Service for extracting structured data from unstructured user messages.
 """
+import dspy
 from typing import Optional
 from datetime import datetime, timedelta
 from functools import lru_cache
 import hashlib
+import threading
 from modules import NameExtractor, VehicleDetailsExtractor, DateParser
 from dspy_config import ensure_configured
 from models import ValidatedName, ValidatedVehicleDetails, ValidatedDate, ExtractionMetadata
@@ -27,26 +29,38 @@ class DataExtractionService:
         # Cache timeout in seconds (30 minutes)
         self._cache_timeout = 30 * 60
 
-    def _get_cache_key(self, user_message: str) -> str:
+        # Add locks for thread safety when accessing shared cache dictionaries
+        self._name_cache_lock = threading.Lock()
+        self._vehicle_cache_lock = threading.Lock()
+        self._date_cache_lock = threading.Lock()
+
+    def _get_cache_key(self, user_message: str, context: str = "") -> str:
         """Generate a cache key for the user message."""
-        return hashlib.md5(user_message.encode()).hexdigest()
+        combined = user_message + context
+        return hashlib.md5(combined.encode()).hexdigest()
 
     def _is_cache_valid(self, cached_time: float) -> bool:
         """Check if cached result is still valid."""
         return (datetime.now().timestamp() - cached_time) < self._cache_timeout
 
-    def extract_name(self, user_message: str) -> Optional[ValidatedName]:
+    def extract_name(self, user_message: str, conversation_history: dspy.History = None) -> Optional[ValidatedName]:
         """Extract customer name from message with validation."""
         # Check cache first
-        cache_key = self._get_cache_key(user_message)
-        if cache_key in self._name_cache:
-            cached_result, timestamp = self._name_cache[cache_key]
-            if self._is_cache_valid(timestamp):
-                return cached_result
+        cache_key = self._get_cache_key(user_message, "name")
+        with self._name_cache_lock:
+            if cache_key in self._name_cache:
+                cached_result, timestamp = self._name_cache[cache_key]
+                if self._is_cache_valid(timestamp):
+                    return cached_result
 
         try:
-            # First, try DSPy extraction (primary method)
-            result = self.name_extractor(user_message=user_message)
+            # First, try DSPy extraction with history context (primary method)
+            # Create history object if not provided
+            history = dspy.History(messages=[]) if conversation_history is None else conversation_history
+            result = self.name_extractor(
+                conversation_history=history,
+                user_message=user_message
+            )
 
             first_name = str(result.first_name).strip()
             last_name = str(result.last_name).strip()
@@ -81,7 +95,8 @@ class DataExtractionService:
                         metadata=metadata
                     )
                     # Cache the result
-                    self._name_cache[cache_key] = (validated_name, datetime.now().timestamp())
+                    with self._name_cache_lock:
+                        self._name_cache[cache_key] = (validated_name, datetime.now().timestamp())
                     return validated_name
                 except Exception:
                     # If validation fails, try regex fallback
@@ -119,7 +134,8 @@ class DataExtractionService:
                         metadata=metadata
                     )
                     # Cache the result
-                    self._name_cache[cache_key] = (validated_name, datetime.now().timestamp())
+                    with self._name_cache_lock:
+                        self._name_cache[cache_key] = (validated_name, datetime.now().timestamp())
                     return validated_name
                 except Exception:
                     # If both DSPy and regex methods fail with validation, return None
@@ -158,25 +174,32 @@ class DataExtractionService:
                         metadata=metadata
                     )
                     # Cache the result
-                    self._name_cache[cache_key] = (validated_name, datetime.now().timestamp())
+                    with self._name_cache_lock:
+                        self._name_cache[cache_key] = (validated_name, datetime.now().timestamp())
                     return validated_name
                 except Exception:
                     pass
 
         return None
 
-    def extract_vehicle_details(self, user_message: str) -> Optional[ValidatedVehicleDetails]:
+    def extract_vehicle_details(self, user_message: str, conversation_history: dspy.History = None) -> Optional[ValidatedVehicleDetails]:
         """Extract vehicle details from message with validation."""
         # Check cache first
-        cache_key = self._get_cache_key(user_message)
-        if cache_key in self._vehicle_cache:
-            cached_result, timestamp = self._vehicle_cache[cache_key]
-            if self._is_cache_valid(timestamp):
-                return cached_result
+        cache_key = self._get_cache_key(user_message, "vehicle")
+        with self._vehicle_cache_lock:
+            if cache_key in self._vehicle_cache:
+                cached_result, timestamp = self._vehicle_cache[cache_key]
+                if self._is_cache_valid(timestamp):
+                    return cached_result
 
         try:
-            # First, try DSPy extraction (primary method)
-            result = self.vehicle_extractor(user_message=user_message)
+            # First, try DSPy extraction with history context (primary method)
+            # Create history object if not provided
+            history = dspy.History(messages=[]) if conversation_history is None else conversation_history
+            result = self.vehicle_extractor(
+                conversation_history=history,
+                user_message=user_message
+            )
 
             brand = str(result.brand).strip()
             model = str(result.model).strip()
@@ -201,7 +224,8 @@ class DataExtractionService:
                         metadata=metadata
                     )
                     # Cache the result
-                    self._vehicle_cache[cache_key] = (validated_vehicle, datetime.now().timestamp())
+                    with self._vehicle_cache_lock:
+                        self._vehicle_cache[cache_key] = (validated_vehicle, datetime.now().timestamp())
                     return validated_vehicle
                 except Exception:
                     # If validation fails, try regex fallback
@@ -249,7 +273,8 @@ class DataExtractionService:
                             metadata=metadata
                         )
                         # Cache the result
-                        self._vehicle_cache[cache_key] = (validated_vehicle, datetime.now().timestamp())
+                        with self._vehicle_cache_lock:
+                            self._vehicle_cache[cache_key] = (validated_vehicle, datetime.now().timestamp())
                         return validated_vehicle
                     except Exception:
                         # If both DSPy and regex methods fail with validation, continue to general exception
@@ -298,7 +323,8 @@ class DataExtractionService:
                             metadata=metadata
                         )
                         # Cache the result
-                        self._vehicle_cache[cache_key] = (validated_vehicle, datetime.now().timestamp())
+                        with self._vehicle_cache_lock:
+                            self._vehicle_cache[cache_key] = (validated_vehicle, datetime.now().timestamp())
                         return validated_vehicle
                     except Exception:
                         # If both DSPy and regex methods fail with validation, return None
@@ -306,19 +332,23 @@ class DataExtractionService:
 
         return None
 
-    def parse_date(self, user_message: str) -> Optional[ValidatedDate]:
+    def parse_date(self, user_message: str, conversation_history: dspy.History = None) -> Optional[ValidatedDate]:
         """Parse date from natural language with validation."""
         # Check cache first
-        cache_key = self._get_cache_key(user_message)
-        if cache_key in self._date_cache:
-            cached_result, timestamp = self._date_cache[cache_key]
-            if self._is_cache_valid(timestamp):
-                return cached_result
+        cache_key = self._get_cache_key(user_message, "date")
+        with self._date_cache_lock:
+            if cache_key in self._date_cache:
+                cached_result, timestamp = self._date_cache[cache_key]
+                if self._is_cache_valid(timestamp):
+                    return cached_result
 
         try:
-            # First, try DSPy extraction (primary method)
+            # First, try DSPy extraction with history context (primary method)
+            # Create history object if not provided
+            history = dspy.History(messages=[]) if conversation_history is None else conversation_history
             current_date = datetime.now().strftime("%Y-%m-%d")
             result = self.date_parser(
+                conversation_history=history,
                 user_message=user_message,
                 current_date=current_date
             )
@@ -353,7 +383,8 @@ class DataExtractionService:
                             metadata=metadata
                         )
                         # Cache the result
-                        self._date_cache[cache_key] = (validated_date, datetime.now().timestamp())
+                        with self._date_cache_lock:
+                            self._date_cache[cache_key] = (validated_date, datetime.now().timestamp())
                         return validated_date
                     except Exception:
                         # If validation fails, try regex fallback
@@ -401,7 +432,8 @@ class DataExtractionService:
                                 metadata=metadata
                             )
                             # Cache the result
-                            self._date_cache[cache_key] = (validated_date, datetime.now().timestamp())
+                            with self._date_cache_lock:
+                                self._date_cache[cache_key] = (validated_date, datetime.now().timestamp())
                             return validated_date
                         except Exception:
                             # If both DSPy and regex methods fail with validation, continue to general exception
@@ -449,7 +481,8 @@ class DataExtractionService:
                                 metadata=metadata
                             )
                             # Cache the result
-                            self._date_cache[cache_key] = (validated_date, datetime.now().timestamp())
+                            with self._date_cache_lock:
+                                self._date_cache[cache_key] = (validated_date, datetime.now().timestamp())
                             return validated_date
                         except Exception:
                             # If both DSPy and regex methods fail with validation, return None

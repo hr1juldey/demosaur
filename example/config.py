@@ -40,7 +40,7 @@ class Config:
     
     # Conversation Settings
     MAX_CHAT_HISTORY = 25
-    SENTIMENT_CHECK_INTERVAL = 3  # Check sentiment every N messages
+    SENTIMENT_CHECK_INTERVAL = 2  # Check sentiment every N messages
     
     # Sentiment Thresholds
     SENTIMENT_THRESHOLDS: Dict[str, Dict[str, float]] = {
