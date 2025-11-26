@@ -34,7 +34,7 @@ class Config:
     
     # DSPy/LLM Settings
     OLLAMA_BASE_URL = "http://localhost:11434"
-    MODEL_NAME = "qwen3:8b"  # 8B parameter model for CPU
+    MODEL_NAME = "gpt-oss:20b"  # 8B parameter model for CPU
     MAX_TOKENS = 4000
     TEMPERATURE = 0.5  # Lower for consistency
     
@@ -46,17 +46,17 @@ class Config:
     SENTIMENT_THRESHOLDS: Dict[str, Dict[str, float]] = {
         "proceed": {
             "interest": 5.0,
-            "anger": 7.0,
-            "disgust": 7.0,
-            "boredom": 7.0,
+            "anger": 6.0,
+            "disgust": 3.0,
+            "boredom": 5.0,
         },
         "engage": {
-            "interest": 7.0,
+            "interest": 5.0,
         },
         "disengage": {
-            "anger": 7.0,
-            "disgust": 7.0,
-            "boredom": 8.0,
+            "anger": 8.0,
+            "disgust": 8.0,
+            "boredom": 9.0,
         }
     }
     

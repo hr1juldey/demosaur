@@ -1,8 +1,8 @@
 """
 Example usage and testing script for the intelligent chatbot.
 """
-from config import ConversationState
-from chatbot_orchestrator import ChatbotOrchestrator
+from ..config import ConversationState
+from ..chatbot_orchestrator import ChatbotOrchestrator
 from dspy_config import dspy_configurator
 
 

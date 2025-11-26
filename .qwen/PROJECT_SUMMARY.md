@@ -1,48 +1,37 @@
 # Project Summary
 
 ## Overall Goal
-Create a context management system for small LLMs (Mistral 7B, Qwen3 8B) that operates within Ollama's 4096 token limit by implementing a dual-layer architecture: long-term persistent memory using Mem0 (in `/src/memory/`) and short-term immediate context management (in `/src/context/`) with bidirectional linking and token budget enforcement.
+Fix critical bugs in the DSPy-powered chatbot system related to overly conservative sentiment analysis, poor conversation history management, parallel session mixing, and suboptimal historical context usage.
 
 ## Key Knowledge
-- **Ollama Constraint**: Hard 4096 token limit for input context regardless of model native capabilities
-- **Architecture**: Memory layer (`/src/memory/`) for persistent storage, Context layer (`/src/context/`) for immediate/short-term context
-- **Token Budget**: 20% (820 tokens) for system prompts, 30% (1230 tokens) for generation, 50% (2048 tokens) for active context
-- **2-Way Linking**: Each node maintains both forward references (what it depends on) and backward references (what references it)
-- **File Size Limits**: ≤100 lines per file (with 10-20% flexibility), following Single Responsibility Principle (SRP)
-- **DSPy Integration**: Memory-enhanced modules and tools for ReAct framework
-- **Import Pattern**: Absolute imports only, no relative imports, imports at file top level
+- Technology Stack: Python with DSPy framework, Ollama LLM, Pydantic v2 for validation
+- Architecture: Intelligent chatbot with DSPy orchestration layer, data extraction services, sentiment analysis
+- Key Files: chatbot_orchestrator.py manages core logic, data_extractor.py handles extraction, models.py contains validation models
+- The system was exhibiting "coward" behavior by avoiding engagement when customers expressed emotions
+- Originally had issues with conversation history not being properly utilized
+- Had parallel session isolation problems that could mix data between different conversations
 
 ## Recent Actions
-### Completed
-1. **[DONE]** Created `Mem0Client` class with Ollama configuration using local file-based storage
-2. **[DONE]** Created `CacheNode` dataclass with 2-way linking (forward/backward references)
-3. **[DONE]** Created token management system (`TokenManager`, `TokenBudget`) for 4096 limit compliance
-4. **[DONE]** Created networked cache system with graph-based linking
-5. **[DONE]** Created recent context manager for handling immediate context needs
-6. **[DONE]** Established proper directory structure: `/src/memory/` for persistent storage, `/src/context/` for immediate context
-7. **[DONE]** Created DSPy integration components for memory-enhanced modules and tools
-8. **[DONE]** Implemented token budget enforcement with priority-based selection
-9. **[DONE]** Created comprehensive unit tests for all core components
-
-### Key Discoveries
-- NetworkX is not allowed due to performance/ram concerns; using lightweight alternatives
-- Mem0 can be configured for local file-based storage without external database servers
-- Token estimation uses conservative approach: chars/4 with 10% safety buffer
-- Bidirectional references preserve relationship information critical for small LLMs
+- Completed all tasks listed in BUGS_3.md
+- Fixed overly conservative sentiment analysis in ValidatedSentimentScores.should_proceed() method by adjusting thresholds
+- Implemented proper DSPy history management by adding dspy.History to signatures and modules
+- Improved conversation history management in chatbot_orchestrator.py to leverage full history for sentiment analysis
+- Fixed parallel session isolation issues by ensuring conversation IDs are properly used in all components
+- Modified chatbot_orchestrator.py to call sentiment analysis on every turn when emotional context is detected, not just periodically
+- Removed duplicate validation logic by using existing validation in models.py
+- Added thread-safe caching mechanisms to prevent parallel session data mixing
+- Updated data extraction methods to use imported validation functions (validate_indian_vehicle_number, validate_date_string)
 
 ## Current Plan
-1. **[DONE]** Implement Mem0 client with local Ollama configuration
-2. **[DONE]** Create CacheNode dataclass with 2-way linking 
-3. **[DONE]** Build token management system with 4096 limit budgeting
-4. **[DONE]** Implement networked cache with lightweight graph structure (avoiding NetworkX)
-5. **[DONE]** Create recent context manager for immediate session-based context
-6. **[DONE]** Develop DSPy integration modules and tools
-7. **[DONE]** Establish proper file organization in `/src/memory/` and `/src/context/` directories
-8. **[DONE]** Create comprehensive unit test suite for all components
-9. **[DONE]** Ensure all files adhere to ≤100 lines constraint with proper modularization
-10. **[DONE]** Verify 4096 token limit compliance across all context operations
+- [DONE] Fix overly conservative sentiment analysis thresholds to prevent coward behavior
+- [DONE] Implement proper DSPy history management by adding dspy.History to signatures and modules  
+- [DONE] Improve conversation history management to leverage full history for sentiment analysis
+- [DONE] Fix parallel session isolation issues with proper thread safety and conversation ID usage
+- [DONE] Modify orchestrator to call sentiment analysis on every turn when emotional context detected
+- [DONE] Remove duplicate validation logic and use existing models.py validation
+- [DONE] Update data extraction to use imported validation functions from models.py
 
 ---
 
 ## Summary Metadata
-**Update time**: 2025-11-24T09:45:13.788Z 
+**Update time**: 2025-11-26T09:11:39.805Z 
