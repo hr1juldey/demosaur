@@ -44,7 +44,7 @@ class TemplateManager:
     def decide_response_mode(
         self,
         user_message: str,
-        intent: str = "general_inquiry",
+        intent: str = "inquire",
         sentiment_interest: float = 5.0,
         sentiment_anger: float = 1.0,
         sentiment_disgust: float = 1.0,
@@ -56,7 +56,7 @@ class TemplateManager:
 
         Args:
             user_message: User's input
-            intent: Classified intent (pricing, catalog, booking, general_inquiry, complaint, small_talk, reschedule)
+            intent: Classified intent from DSPy (book, inquire, complaint, small_talk, cancel, reschedule, payment)
             sentiment_interest: Interest score (1-10)
             sentiment_anger: Anger score (1-10)
             sentiment_disgust: Disgust score (1-10)
@@ -66,6 +66,19 @@ class TemplateManager:
         Returns:
             (ResponseMode, template_key_if_applicable)
         """
+        # Map DSPy intent values to internal template_manager logic
+        intent_lower = str(intent).strip().lower()
+        intent_mapping = {
+            "book": "booking",
+            "inquire": "general_inquiry",
+            "payment": "pricing",
+            "complaint": "complaint",
+            "small_talk": "general_inquiry",
+            "cancel": "general_inquiry",
+            "reschedule": "general_inquiry"
+        }
+        intent = intent_mapping.get(intent_lower, "general_inquiry")
+
         # RULE 1: Intent-Based Decision (Intent OVERRIDES sentiment)
         if intent == "pricing":
             return (ResponseMode.TEMPLATE_ONLY, "pricing")

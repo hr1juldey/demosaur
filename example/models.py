@@ -207,53 +207,67 @@ class ValidatedVehicleDetails(BaseModel):
     """Validated vehicle details with comprehensive validation."""
     model_config = ConfigDict(extra='forbid')
 
-    brand: Union[VehicleBrandEnum, str] = Field(
-        ...,
+    brand: Union[VehicleBrandEnum, str, None] = Field(
+        default=None,
         description="Vehicle brand, ideally from the enum, but flexible for unknown brands"
     )
-    model: str = Field(
-        ...,
-        min_length=1,
+    model: Optional[str] = Field(
+        default=None,
         max_length=50,
-        pattern=r'^[A-Za-z0-9\'\- _]+$',
         description="Vehicle model name"
     )
-    number_plate: str = Field(
-        ...,
-        min_length=1,
+    number_plate: Optional[str] = Field(
+        default=None,
         max_length=20,
-        pattern=r'^[A-Z0-9\s\-]+$',
         description="Vehicle license plate number in standardized format"
     )
     metadata: ExtractionMetadata = Field(description="Extraction metadata")
 
     @model_validator(mode='after')
     def validate_vehicle_details(self):
-        """Validate vehicle details consistency."""
-        # Validate number plate format more permissively for LLM outputs
-        plate_cleaned = self.number_plate.replace(' ', '').replace('-', '').replace('.', '').upper()
+        """Validate vehicle details consistency - allows None for partial extraction."""
+        # Allow partial extraction - validate only if values are present
+        if self.number_plate and self.number_plate.strip():
+            # Validate number plate format more permissively for LLM outputs
+            plate_cleaned = self.number_plate.replace(' ', '').replace('-', '').replace('.', '').upper()
 
-        # Check if the plate is at least somewhat reasonable (more permissive)
-        if len(plate_cleaned) < 1 or len(plate_cleaned) > 15:
-            raise ValueError("Number plate length is unreasonable")
+            # Check if the plate is at least somewhat reasonable (more permissive)
+            if len(plate_cleaned) < 1 or len(plate_cleaned) > 15:
+                raise ValueError("Number plate length is unreasonable")
 
-        # Check if model name is reasonable
-        if len(self.model) < 1:
+        # Check if model name is reasonable (only if present)
+        if self.model and len(self.model.strip()) < 1:
             raise ValueError("Vehicle model must not be empty")
 
         # More permissive brand validation since LLMs may provide various formats
-        if isinstance(self.brand, str) and len(self.brand) < 1:
+        if isinstance(self.brand, str) and self.brand and len(self.brand.strip()) < 1:
             # Allow minimum 1 character for brand to accommodate LLM abbreviations
             raise ValueError("Brand name is too short")
 
         return self
 
-    @field_validator('number_plate')
+    @field_validator('brand', 'model', 'number_plate')
     @classmethod
-    def normalize_number_plate(cls, v: str) -> str:
-        """Normalize number plate format."""
-        # Remove extra spaces and standardize separators
-        normalized = re.sub(r'\s+', ' ', v.strip().upper())
+    def normalize_vehicle_fields(cls, v: Optional[Union[str, VehicleBrandEnum]]) -> Optional[Union[str, VehicleBrandEnum]]:
+        """Normalize vehicle fields - allows None for partial extraction."""
+        if v is None:
+            return None
+
+        # If it's an enum, return as-is
+        if isinstance(v, VehicleBrandEnum):
+            return v
+
+        # Check if it's an empty string after stripping
+        if not v.strip():
+            return None
+
+        # Skip normalization for LLM outputs like "None", "Unknown", etc.
+        if v.strip().lower() in ['none', 'unknown', 'n/a', '']:
+            return None
+
+        # For number plates, normalize to uppercase with standardized spaces
+        # For models, just strip and normalize spaces
+        normalized = re.sub(r'\s+', ' ', v.strip())
         return normalized
 
 

@@ -13,6 +13,7 @@ from response_composer import ResponseComposer
 from template_manager import TemplateManager
 from models import ValidatedChatbotResponse, ValidatedSentimentScores, ValidatedIntent, ExtractionMetadata
 from dspy_config import ensure_configured
+from retroactive_validator import final_validation_sweep
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,20 @@ class ChatbotOrchestrator:
         # 2b. Analyze sentiment (interest, anger, disgust, boredom, neutral)
         sentiment = self.sentiment_service.analyze(history, user_message)
 
+        # 2c. Convert sentiment values to float (handle JSON string deserialization)
+        if sentiment:
+            try:
+                sentiment.interest = float(sentiment.interest)
+                sentiment.anger = float(sentiment.anger)
+                sentiment.disgust = float(sentiment.disgust)
+                sentiment.boredom = float(sentiment.boredom)
+            except (ValueError, TypeError):
+                # Fallback to defaults if conversion fails
+                sentiment.interest = 5.0
+                sentiment.anger = 1.0
+                sentiment.disgust = 1.0
+                sentiment.boredom = 1.0
+
         # 3. Decide response mode based on INTENT + SENTIMENT
         # Intent OVERRIDES sentiment (e.g., pricing inquiry always shows pricing template)
         response_mode, template_key = self.template_manager.decide_response_mode(
@@ -94,6 +109,38 @@ class ChatbotOrchestrator:
         if extracted_data:
             for key, value in extracted_data.items():
                 self.conversation_manager.store_user_data(conversation_id, key, value)
+
+        # 7.5. Retroactively validate and complete missing prerequisite data
+        try:
+            logger.warning(f"🔄 RETROACTIVE: Starting sweep. State={current_state.value}, Extracted={extracted_data}")
+            # Call synchronously - no async/await needed
+            retroactive_data = final_validation_sweep(
+                current_state=current_state.value,
+                extracted_data=extracted_data if extracted_data else {},
+                history=history
+            )
+            logger.warning(f"🔄 RETROACTIVE: Result={retroactive_data}")
+            # Merge retroactively filled data with existing extracted data
+            if retroactive_data:
+                if not extracted_data:
+                    extracted_data = {}
+                # Track what changed (including improvements to "Unknown" values)
+                improved_fields = []
+                for key, value in retroactive_data.items():
+                    old_value = extracted_data.get(key)
+                    if old_value != value:
+                        if str(old_value).lower() == "unknown" and str(value).lower() != "unknown":
+                            improved_fields.append(f"{key}: {old_value}→{value}")
+                        elif key not in extracted_data or old_value is None:
+                            improved_fields.append(key)
+                    extracted_data[key] = value
+                if improved_fields:
+                    logger.warning(f"⚡ RETROACTIVE IMPROVEMENTS: {improved_fields}")
+                # Store retroactively filled data
+                for key, value in retroactive_data.items():
+                    self.conversation_manager.store_user_data(conversation_id, key, value)
+        except Exception as e:
+            logger.error(f"❌ Retroactive validation ERROR: {type(e).__name__}: {e}", exc_info=True)
 
         # 8. Determine next state (simplified - based on sentiment + extracted data)
         next_state = self._determine_next_state(
@@ -257,9 +304,9 @@ class ChatbotOrchestrator:
                 )
             )
         except Exception as e:
-            logger.warning(f"Intent classification failed: {type(e).__name__}: {e}, defaulting to general_inquiry")
+            logger.warning(f"Intent classification failed: {type(e).__name__}: {e}, defaulting to inquire")
             return ValidatedIntent(
-                intent_class="general_inquiry",
+                intent_class="inquire",
                 confidence=0.0,
                 reasoning="Failed to classify intent, using default",
                 metadata=ExtractionMetadata(
