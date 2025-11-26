@@ -59,3 +59,27 @@ class ConversationManager:
         """Clear conversation history."""
         if conversation_id in self.conversations:
             del self.conversations[conversation_id]
+
+    def get_dspy_history(self, conversation_id: str):
+        """
+        Get conversation history as dspy.History object for DSPy modules.
+
+        DSPy modules require conversation_history parameter in dspy.History format.
+        This method converts internal ValidatedConversationContext to that format.
+
+        Args:
+            conversation_id: ID of the conversation to retrieve
+
+        Returns:
+            dspy.History object with conversation messages
+
+        Example:
+            >>> history = conversation_manager.get_dspy_history("conv_123")
+            >>> result = sentiment_analyzer(
+            ...     conversation_history=history,
+            ...     current_message="How can I help?"
+            ... )
+        """
+        from history_utils import messages_to_dspy_history
+        context = self.get_or_create(conversation_id)
+        return messages_to_dspy_history(context)
