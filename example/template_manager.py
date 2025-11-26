@@ -44,47 +44,50 @@ class TemplateManager:
     def decide_response_mode(
         self,
         user_message: str,
+        intent: str = "general_inquiry",
         sentiment_interest: float = 5.0,
         sentiment_anger: float = 1.0,
+        sentiment_disgust: float = 1.0,
+        sentiment_boredom: float = 1.0,
         current_state: str = "greeting"
     ) -> Tuple[ResponseMode, str]:
         """
-        Decide whether to use template or LLM response.
+        Decide whether to use template or LLM response based on INTENT + SENTIMENT.
 
         Args:
             user_message: User's input
+            intent: Classified intent (pricing, catalog, booking, general_inquiry, complaint, small_talk, reschedule)
             sentiment_interest: Interest score (1-10)
             sentiment_anger: Anger score (1-10)
+            sentiment_disgust: Disgust score (1-10)
+            sentiment_boredom: Boredom score (1-10)
             current_state: Current conversation state
 
         Returns:
             (ResponseMode, template_key_if_applicable)
         """
-        message_lower = user_message.lower().strip()
-
-        # Rule 1: Check for explicit template triggers
-        template_trigger = self._check_template_trigger(message_lower)
-        if template_trigger:
-            return (ResponseMode.TEMPLATE_ONLY, template_trigger)
-
-        # Rule 2: Check for anger or disgust - Don't push templates to angry customer
-        if sentiment_anger > 6.0:
+        # RULE 1: Intent-Based Decision (Intent OVERRIDES sentiment)
+        if intent == "pricing":
+            return (ResponseMode.TEMPLATE_ONLY, "pricing")
+        elif intent == "catalog":
+            return (ResponseMode.TEMPLATE_ONLY, "catalog")
+        elif intent == "booking":
+            return (ResponseMode.TEMPLATE_ONLY, "plans")
+        elif intent == "complaint":
+            return (ResponseMode.LLM_ONLY, "")
+        elif intent == "general_inquiry":
             return (ResponseMode.LLM_ONLY, "")
 
-        # Rule 3: Check for questions or confusion - Use LLM first
-        if self._is_question(message_lower):
-            return (ResponseMode.LLM_THEN_TEMPLATE, "")
-
-        # Rule 4: High interest - Be friendly but still deliver CTAs
-        if sentiment_interest > self.sentiment_threshold_interested:
-            return (ResponseMode.TEMPLATE_THEN_LLM, "catalog")
-
-        # Rule 5: Low interest - Don't push, chat to engage
-        if sentiment_interest < self.sentiment_threshold_disinterested:
+        # RULE 2: For small_talk & reschedule, use sentiment to adjust tone
+        # Don't push templates to angry/disgusted/bored customers
+        if sentiment_anger > 6.0 or sentiment_disgust > 6.0:
             return (ResponseMode.LLM_ONLY, "")
 
-        # Default: Mixed approach
-        return (ResponseMode.TEMPLATE_THEN_LLM, "catalog")
+        if sentiment_boredom > 7.0:
+            return (ResponseMode.LLM_ONLY, "")
+
+        # Default for small_talk/reschedule: Use LLM with empathy
+        return (ResponseMode.LLM_THEN_TEMPLATE, "")
 
     def _check_template_trigger(self, message: str) -> str:
         """Check if message matches template trigger keywords."""

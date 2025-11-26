@@ -21,8 +21,11 @@ class ResponseComposer:
         self,
         user_message: str,
         llm_response: str = "",
+        intent: str = "general_inquiry",
         sentiment_interest: float = 5.0,
         sentiment_anger: float = 1.0,
+        sentiment_disgust: float = 1.0,
+        sentiment_boredom: float = 1.0,
         current_state: str = "greeting",
         template_variables: Dict[str, Any] = None
     ) -> Dict[str, Any]:
@@ -32,8 +35,11 @@ class ResponseComposer:
         Args:
             user_message: User's input
             llm_response: Response from LLM chatbot
+            intent: Classified user intent
             sentiment_interest: Interest level (1-10)
             sentiment_anger: Anger level (1-10)
+            sentiment_disgust: Disgust level (1-10)
+            sentiment_boredom: Boredom level (1-10)
             current_state: Conversation state
             template_variables: Variables to render templates
 
@@ -42,9 +48,28 @@ class ResponseComposer:
         """
         template_variables = template_variables or {}
 
-        # Decide response mode
+        # Convert sentiment values to float (may come as strings from JSON)
+        try:
+            sentiment_interest = float(sentiment_interest)
+            sentiment_anger = float(sentiment_anger)
+            sentiment_disgust = float(sentiment_disgust)
+            sentiment_boredom = float(sentiment_boredom)
+        except (ValueError, TypeError):
+            # Fallback to defaults if conversion fails
+            sentiment_interest = 5.0
+            sentiment_anger = 1.0
+            sentiment_disgust = 1.0
+            sentiment_boredom = 1.0
+
+        # Decide response mode with intent + all sentiment dimensions
         mode, template_key = self.template_manager.decide_response_mode(
-            user_message, sentiment_interest, sentiment_anger, current_state
+            user_message=user_message,
+            intent=intent,
+            sentiment_interest=sentiment_interest,
+            sentiment_anger=sentiment_anger,
+            sentiment_disgust=sentiment_disgust,
+            sentiment_boredom=sentiment_boredom,
+            current_state=current_state
         )
 
         # Build response

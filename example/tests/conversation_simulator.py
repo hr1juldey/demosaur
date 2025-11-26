@@ -144,7 +144,7 @@ class ConversationSimulator:
 │ ⏱️  Latency: {result['latency']:.3f}s (Avg: {metrics.total_latency / metrics.turn_number:.3f}s)
 │ ✅ Proceed: {result.get('should_proceed', True)}
 │
-│ 📊 SENTIMENT: {' Interest=' + str(sentiment.get('interest', '-')) if sentiment else 'Not analyzed':<20} Anger={sentiment.get('anger', '-') if sentiment else '-':<5} Boredom={sentiment.get('boredom', '-') if sentiment else '-'}
+│ 📊 SENTIMENT: Interest={sentiment.get('interest', '-') if sentiment else 'N/A':<4} Anger={sentiment.get('anger', '-') if sentiment else 'N/A':<4} Disgust={sentiment.get('disgust', '-') if sentiment else 'N/A':<4} Boredom={sentiment.get('boredom', '-') if sentiment else 'N/A':<4} Neutral={sentiment.get('neutral', '-') if sentiment else 'N/A':<4}
 │ 📦 EXTRACTED: {str(extracted) if extracted else 'None'}
 │ 💡 ACTIONS: {'Sentiment✓' if sentiment else 'Sentiment✗'}  {'Extract✓' if extracted else 'Extract✗'}  {'Engage' if suggestions.get('add_engagement') else 'Normal'}
 │

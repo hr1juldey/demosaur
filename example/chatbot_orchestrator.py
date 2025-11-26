@@ -3,6 +3,7 @@ Simplified chatbot orchestrator using DSPy ReAct agent for intelligent decision-
 Removes artificial delays, message chunking, and over-engineered state machine.
 """
 import dspy
+import logging
 from typing import Dict, Any, Optional
 from config import ConversationState
 from conversation_manager import ConversationManager
@@ -10,7 +11,10 @@ from sentiment_analyzer import SentimentAnalysisService
 from data_extractor import DataExtractionService
 from response_composer import ResponseComposer
 from template_manager import TemplateManager
-from models import ValidatedChatbotResponse, ValidatedSentimentScores
+from models import ValidatedChatbotResponse, ValidatedSentimentScores, ValidatedIntent, ExtractionMetadata
+from dspy_config import ensure_configured
+
+logger = logging.getLogger(__name__)
 
 
 class ChatbotOrchestrator:
@@ -45,16 +49,22 @@ class ChatbotOrchestrator:
         context = self.conversation_manager.add_user_message(conversation_id, user_message)
         history = self.conversation_manager.get_dspy_history(conversation_id)
 
-        # 2. Analyze sentiment (interest, anger, disgust, boredom, neutral)
+        # 2a. Classify user intent
+        intent = self._classify_intent(history, user_message)
+
+        # 2b. Analyze sentiment (interest, anger, disgust, boredom, neutral)
         sentiment = self.sentiment_service.analyze(history, user_message)
 
-        # 3. Decide response mode based on sentiment + message intent
-        # (template_only, llm_then_template, template_then_llm, llm_only)
+        # 3. Decide response mode based on INTENT + SENTIMENT
+        # Intent OVERRIDES sentiment (e.g., pricing inquiry always shows pricing template)
         response_mode, template_key = self.template_manager.decide_response_mode(
-            user_message,
-            sentiment.interest if sentiment else 5.0,
-            sentiment.anger if sentiment else 1.0,
-            current_state.value
+            user_message=user_message,
+            intent=intent.intent_class,
+            sentiment_interest=sentiment.interest if sentiment else 5.0,
+            sentiment_anger=sentiment.anger if sentiment else 1.0,
+            sentiment_disgust=sentiment.disgust if sentiment else 1.0,
+            sentiment_boredom=sentiment.boredom if sentiment else 1.0,
+            current_state=current_state.value
         )
 
         # 4. Extract structured data if in data collection state
@@ -71,8 +81,11 @@ class ChatbotOrchestrator:
         response = self.response_composer.compose_response(
             user_message=user_message,
             llm_response=llm_response,
+            intent=intent.intent_class,
             sentiment_interest=sentiment.interest if sentiment else 5.0,
             sentiment_anger=sentiment.anger if sentiment else 1.0,
+            sentiment_disgust=sentiment.disgust if sentiment else 1.0,
+            sentiment_boredom=sentiment.boredom if sentiment else 1.0,
             current_state=current_state.value,
             template_variables=self._get_template_variables(extracted_data)
         )
@@ -220,3 +233,38 @@ class ChatbotOrchestrator:
         if not extracted_data:
             return {}
         return {k: str(v) for k, v in extracted_data.items()}
+
+    def _classify_intent(self, history: dspy.History, user_message: str) -> ValidatedIntent:
+        """Classify customer intent (pricing, booking, complaint, etc.)."""
+        from modules import IntentClassifier
+
+        ensure_configured()
+        try:
+            classifier = IntentClassifier()
+            result = classifier(
+                conversation_history=history,
+                current_message=user_message
+            )
+            intent_class = str(result.intent_class).strip().lower()
+            return ValidatedIntent(
+                intent_class=intent_class,
+                confidence=0.8,
+                reasoning=str(result.reasoning),
+                metadata=ExtractionMetadata(
+                    confidence=0.8,
+                    extraction_method="dspy",
+                    extraction_source=user_message
+                )
+            )
+        except Exception as e:
+            logger.warning(f"Intent classification failed: {type(e).__name__}: {e}, defaulting to general_inquiry")
+            return ValidatedIntent(
+                intent_class="general_inquiry",
+                confidence=0.0,
+                reasoning="Failed to classify intent, using default",
+                metadata=ExtractionMetadata(
+                    confidence=0.0,
+                    extraction_method="fallback",
+                    extraction_source=user_message
+                )
+            )
