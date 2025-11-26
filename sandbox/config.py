@@ -34,8 +34,8 @@ class Config:
     
     # DSPy/LLM Settings
     OLLAMA_BASE_URL = "http://localhost:11434"
-    MODEL_NAME = "gpt-oss:20b"  # 3B parameter model for CPU
-    MAX_TOKENS = 4000
+    MODEL_NAME = "llama3.2:3b"  # 3B parameter model for CPU
+    MAX_TOKENS = 2000
     TEMPERATURE = 0.3  # Lower for consistency
     
     # Conversation Settings
