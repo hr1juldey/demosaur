@@ -5,11 +5,19 @@ NOT validation-blocking: returns None gracefully instead of strict Pydantic vali
 """
 import dspy
 import re
+import logging
 from typing import Optional
 from datetime import datetime
 from modules import NameExtractor, VehicleDetailsExtractor, DateParser
 from dspy_config import ensure_configured
 from models import ValidatedName, ValidatedVehicleDetails, ValidatedDate, ExtractionMetadata
+
+# Configure logging for diagnostic purposes
+logging.basicConfig(
+    level=logging.ERROR,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 class DataExtractionService:
@@ -51,7 +59,11 @@ class DataExtractionService:
                         extraction_source=user_message
                     )
                 )
-        except Exception:
+        except Exception as e:
+            logger.error(f"DSPy name extraction failed: {type(e).__name__}: {e}")
+            logger.error(f"History type: {type(conversation_history)}, Has messages: {hasattr(conversation_history, 'messages')}")
+            if hasattr(conversation_history, 'messages'):
+                logger.error(f"Message count: {len(conversation_history.messages)}")
             pass
 
         # Fallback: Simple regex only if DSPy fails
@@ -65,7 +77,7 @@ class DataExtractionService:
                     full_name=name.capitalize(),
                     metadata=ExtractionMetadata(
                         confidence=0.7,
-                        extraction_method="regex",
+                        extraction_method="rule_based",
                         extraction_source=user_message
                     )
                 )
@@ -102,7 +114,11 @@ class DataExtractionService:
                         extraction_source=user_message
                     )
                 )
-        except Exception:
+        except Exception as e:
+            logger.error(f"DSPy vehicle extraction failed: {type(e).__name__}: {e}")
+            logger.error(f"History type: {type(conversation_history)}, Has messages: {hasattr(conversation_history, 'messages')}")
+            if hasattr(conversation_history, 'messages'):
+                logger.error(f"Message count: {len(conversation_history.messages)}")
             pass
 
         # Fallback: Simple regex only if DSPy fails
@@ -118,7 +134,7 @@ class DataExtractionService:
                 number_plate=plate,
                 metadata=ExtractionMetadata(
                     confidence=0.8,
-                    extraction_method="regex",
+                    extraction_method="rule_based",
                     extraction_source=user_message
                 )
             )
@@ -159,7 +175,11 @@ class DataExtractionService:
                     )
                 except ValueError:
                     pass
-        except Exception:
+        except Exception as e:
+            logger.error(f"DSPy date parsing failed: {type(e).__name__}: {e}")
+            logger.error(f"History type: {type(conversation_history)}, Has messages: {hasattr(conversation_history, 'messages')}")
+            if hasattr(conversation_history, 'messages'):
+                logger.error(f"Message count: {len(conversation_history.messages)}")
             pass
 
         # Fallback: Simple regex patterns only if DSPy fails
@@ -182,7 +202,7 @@ class DataExtractionService:
                         confidence=0.8,
                         metadata=ExtractionMetadata(
                             confidence=0.8,
-                            extraction_method="regex",
+                            extraction_method="rule_based",
                             extraction_source=user_message
                         )
                     )

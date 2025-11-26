@@ -1,13 +1,44 @@
 # Correction Plan: Restructuring @example/ for DSPy ReAct + Templates
 
+**Status:** ⚠️ PHASE 1 COMPLETE - CRITICAL BUGS DISCOVERED IN INTEGRATION TESTING
+
 ## Executive Summary
 
-**Goal:** Implement intelligent decision-making layer using DSPy ReAct that decides:
+**Original Goal:** Implement intelligent decision-making layer using DSPy ReAct that decides:
 - Whether to send template strings (rule-based CTA)
 - Whether to have intelligent conversation (LLM-based empathy)
 - Whether to combine both (optimal customer experience)
 
 **Key Principle:** Let ReAct agent REASON about customer sentiment, context, and intent → Then DECIDE which tools to use
+
+**Current Status (2025-11-26):**
+- ✅ **Phase 2.1 Complete:** chatbot_orchestrator.py refactored (506 → 218 lines, 57% reduction)
+- ✅ **Phase 2.2 Complete:** data_extractor.py refactored (942 → 192 lines, 79.6% reduction)
+- ✅ **Module Tests:** All 5/5 tests PASS (DSPy extraction works perfectly in isolation)
+- ❌ **Integration Tests:** 0/91 successful extractions (0% success rate) - CRITICAL FAILURE
+- 📋 **Bug Report:** BUGS_4.md created with 10 critical bugs documented
+
+**Next Steps:** Fix integration bugs before proceeding with ReAct agent implementation
+
+---
+
+## ⚠️ CRITICAL UPDATE: Integration Test Results
+
+**What Works:**
+- ✅ Module-level tests (test_llm_connection_fixed.py): 5/5 PASS
+- ✅ DSPy extraction logic is correct
+- ✅ Template system implemented correctly
+- ✅ Response composition works
+
+**What Fails:**
+- ❌ Integration tests (conversation_simulator.py): 0/91 extractions
+- ❌ 100% booking failure rate in actual conversation flow
+- ❌ Multiple Pydantic validation errors
+- ❌ LLM hallucinations (fake guarantees, invented time slots)
+- ❌ Template variable rendering failures
+- ❌ Silent exception handling masking real issues
+
+**Root Cause:** Bugs are in the **orchestration/integration layer**, not in DSPy logic itself. See BUGS_4.md for full analysis.
 
 ---
 
@@ -530,11 +561,133 @@ template_strings.py ← existing (no dependencies)
 
 ---
 
+## Phase 6: URGENT BUG FIXES (Added 2025-11-26)
+
+### Priority 1: Fix Data Extraction Failure (Bug #1)
+
+**Immediate Workaround:**
+```python
+# data_extractor.py lines 68, 122, 186
+# Change:
+extraction_method="regex"
+# To:
+extraction_method="rule_based"
+```
+
+**Critical Diagnosis - Add Logging:**
+```python
+# data_extractor.py line 54-55 (and similar in other methods)
+except Exception as e:
+    import logging
+    logging.error(f"DSPy extraction failed: {type(e).__name__}: {e}")
+    logging.error(f"History format: {type(conversation_history)}, Messages: {len(getattr(conversation_history, 'messages', []))}")
+    pass  # Fall through to regex
+```
+
+**Root Cause Investigation:**
+- Run integration test with logging enabled
+- Inspect why DSPy works in module tests but fails in integration
+- Check conversation history format compatibility
+- Monitor for LLM resource contention (182+ concurrent requests)
+
+### Priority 2: Fix Empty String Validation Errors (Bug #3)
+
+```python
+# chatbot_orchestrator.py line 165-167
+def _generate_empathetic_response(...) -> str:
+    try:
+        generator = EmpathyResponseGenerator()
+        # ... existing logic ...
+        return result.response if result else ""
+    except Exception as e:
+        logging.error(f"Empathy generation failed: {e}")
+        # Add fallback response instead of empty string
+        return "I understand. How can I help you further?"  # ✅ NEVER return empty string
+```
+
+**Also Add Validation in Response Composer:**
+```python
+# response_composer.py line 69
+final_response = "\n".join(response_parts)
+if not final_response or not final_response.strip():
+    # Emergency fallback
+    final_response = "Thank you for your message. How can I assist you today?"
+return {
+    "response": final_response,
+    # ...
+}
+```
+
+### Priority 3: Fix Template Variable Rendering (Bug #2)
+
+**Root cause:** `extracted_data` is always None due to Bug #1, so template variables are empty.
+
+**Fix:** After fixing Bug #1, add default values for templates:
+```python
+# template_strings.py line 135-144
+def render_template(template_key: str, **kwargs) -> str:
+    template = TEMPLATES.get(template_key, {})
+    if not template:
+        return ""
+
+    content = template.get("content", "")
+
+    # Add defaults for common variables
+    defaults = {
+        "service_name": "Car Wash",
+        "basic_price": "299",
+        "standard_price": "799",
+        "premium_price": "1999",
+        "service_type": "wash"
+    }
+
+    # Merge with provided kwargs (kwargs override defaults)
+    variables = {**defaults, **kwargs}
+
+    for key, value in variables.items():
+        content = content.replace(f"{{{key}}}", str(value))
+
+    return content
+```
+
+### Testing After Fixes
+
+**Run this sequence:**
+1. Fix Bug #1 (regex → rule_based)
+2. Add logging to data_extractor.py
+3. Run: `python example/tests/conversation_simulator.py`
+4. Check logs for DSPy failure reasons
+5. Fix identified issue
+6. Run integration test again
+7. Verify: Data Extractions > 0 (should be 70-90% success rate)
+8. Fix Bug #3 (empty string fallbacks)
+9. Fix Bug #2 (template defaults)
+10. Run integration test final time
+11. Verify: Booking completion rate > 80%
+
+### Expected Results After Fixes
+
+**Before Fixes:**
+- ❌ Data Extractions: 0/91 (0%)
+- ❌ Booking Completion: 0/4 (0%)
+- ❌ Average Latency: 11.8s
+- ❌ Error Rate: 6.6%
+
+**After Fixes (Target):**
+- ✅ Data Extractions: 70-90% (65-82 out of 91)
+- ✅ Booking Completion: 80%+ (3-4 out of 4)
+- ✅ Average Latency: < 3s (acceptable)
+- ✅ Error Rate: < 1%
+
+---
+
 ## Notes
 
 - This plan follows QUICK_SUMMARY.txt recommendations
-- Uses DSPy ReAct for intelligent reasoning
+- Uses DSPy ReAct for intelligent reasoning (DEFERRED until bugs fixed)
 - Implements Tool-based architecture as learned
-- Eliminates validation-blocking issues
+- Eliminates validation-blocking issues (IN PROGRESS - Bug #1 & #3)
 - Achieves balance: templates + empathy + intelligence
 - Removes all over-engineering and artificial features
+
+**Update 2025-11-26:** ReAct agent implementation deferred until integration bugs are resolved. Focus on fixing 3 critical bugs first before proceeding with ReAct architecture.

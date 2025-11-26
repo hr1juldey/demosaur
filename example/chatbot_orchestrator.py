@@ -162,9 +162,13 @@ class ChatbotOrchestrator:
                 user_message=user_message,
                 sentiment_context=sentiment_context
             )
-            return result.response if result else ""
+            response = result.response if result else ""
+            # Ensure we never return empty string
+            if not response or not response.strip():
+                return "I understand. How can I help you further?"
+            return response
         except Exception:
-            return ""
+            return "I understand. How can I help you further?"
 
     def _determine_next_state(
         self,

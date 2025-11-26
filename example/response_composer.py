@@ -68,6 +68,10 @@ class ResponseComposer:
         # Combine all parts
         final_response = "\n".join(response_parts)
 
+        # Ensure we never return empty response
+        if not final_response or not final_response.strip():
+            final_response = "I understand. How can I help you further?"
+
         return {
             "response": final_response,
             "mode": mode.value,

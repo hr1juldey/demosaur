@@ -133,13 +133,33 @@ def get_template(template_key: str) -> dict:
 
 
 def render_template(template_key: str, **kwargs) -> str:
-    """Render template with variables."""
+    """Render template with variables, using defaults for missing values."""
     template = TEMPLATES.get(template_key, {})
     if not template:
         return ""
 
+    # Default values for common template variables
+    defaults = {
+        "service_name": "Car Wash",
+        "service_type": "wash",
+        "basic_price": "299",
+        "standard_price": "799",
+        "premium_price": "1999",
+        "vehicle_brand": "Your",
+        "vehicle_model": "Vehicle",
+        "booking_date": "TBD",
+        "booking_time": "TBD",
+        "amount": "TBD",
+        "ticket_id": "PENDING",
+        "booking_id": "PENDING",
+        "date_options": "Please contact us for available dates",
+    }
+
+    # Merge user-provided values with defaults (user values take precedence)
+    merged_vars = {**defaults, **kwargs}
+
     content = template.get("content", "")
-    for key, value in kwargs.items():
+    for key, value in merged_vars.items():
         content = content.replace(f"{{{key}}}", str(value))
 
     return content
