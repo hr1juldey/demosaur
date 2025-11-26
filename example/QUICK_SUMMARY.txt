@@ -71,6 +71,54 @@ STEP 3: FIX THE ROOT CAUSES
   └─ config.py:                Use Sandbox values exactly
 
 ╔════════════════════════════════════════════════════════════════════════════╗
+║            CONVERSATION_HISTORY IMPLEMENTATION - FIXED ✅                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+🚨 QWEN'S IMPLEMENTATION BUG:
+  Qwen added dspy.History to signatures.py but FORGOT to implement conversion
+  logic. This caused test failures:
+    ❌ SentimentAnalyzer: 'str' object has no attribute 'messages'
+    ❌ NameExtractor: missing 1 required positional argument: 'conversation_history'
+    ❌ VehicleDetailsExtractor: same error
+    ❌ DateParser: same error
+
+✅ ROOT CAUSE:
+  1. modules.py forward() required dspy.History but test passed strings
+  2. No conversion mechanism from ValidatedMessage → dspy.History format
+  3. Repeated None-checking pattern in 6 modules (SRP violation)
+
+✅ SOLUTION IMPLEMENTED (Factory Function Pattern):
+
+New Files Created:
+  • history_utils.py (77 lines) - Lean conversion utilities
+    - get_default_history(history) - Factory function for None checking
+    - create_dspy_history(messages) - Convert to dspy.History format
+    - messages_to_dspy_history(context) - From conversation_context
+
+Updated Files:
+  • modules.py (114 lines) - Refactored to use factory function
+    - Removed 6x repeated None-checking code
+    - One-line history handling per module: conversation_history = get_default_history(conversation_history)
+    - DRY principle: Single source of truth in history_utils.py
+
+  • conversation_manager.py (85 lines) - Added get_dspy_history() method
+    - Returns proper dspy.History for DSPy modules
+    - Seamless integration with conversation context
+
+  • test_llm_connection_fixed.py (220 lines) - Proper test implementation
+    - Shows input/output for each test
+    - Uses conversation_manager.get_dspy_history()
+    - All 5 tests passing ✅
+
+✅ TEST RESULTS:
+  DIRECT: ✓ PASS
+  SENTIMENT: ✓ PASS (was failing)
+  NAME: ✓ PASS (was failing)
+  VEHICLE: ✓ PASS (was failing)
+  DATE: ✓ PASS (was failing)
+  Total: 5/5 tests passed
+
+╔════════════════════════════════════════════════════════════════════════════╗
 ║  KEY INSIGHT: Qwen Over-Engineered Everything Without Solving Root Causes  ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 
