@@ -32,7 +32,7 @@ class ValidationResult(BaseModel):
 class ExtractionMetadata(BaseModel):
     """Metadata for extraction process including confidence and source information."""
     confidence: float = Field(ge=0.0, le=1.0, description="Extraction confidence score")
-    extraction_method: Literal["direct", "chain_of_thought", "fallback", "rule_based"] = Field(
+    extraction_method: Literal["direct", "chain_of_thought", "fallback", "rule_based", "dspy"] = Field(
         description="Method used for extraction"
     )
     timestamp: datetime = Field(default_factory=datetime.now, description="Timestamp of extraction")
@@ -52,11 +52,11 @@ class ValidatedName(BaseModel):
         description="First name with proper capitalization and optional middle names/initials"
     )
     last_name: str = Field(
-        ...,
-        min_length=1,
+        default="",
+        min_length=0,
         max_length=50,
-        pattern=r'^[A-Za-z][A-Za-z\'-]*$',
-        description="Last name with proper capitalization"
+        pattern=r'^[A-Za-z\'-]*$',
+        description="Last name with proper capitalization (optional)"
     )
     full_name: str = Field(
         ...,
