@@ -11,6 +11,8 @@ from signatures import (
     DateParsingSignature,
     ResponseGenerationSignature,
     IntentClassificationSignature,
+    SentimentToneSignature,
+    ToneAwareResponseSignature,
 )
 
 
@@ -111,4 +113,55 @@ class EmpathyResponseGenerator(dspy.Module):
             current_state=current_state,
             user_message=user_message,
             sentiment_context=sentiment_context
+        )
+
+
+class SentimentToneAnalyzer(dspy.Module):
+    """Analyze sentiment scores and determine appropriate tone and brevity."""
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(SentimentToneSignature)
+
+    def forward(
+        self,
+        interest_score: float = 5.0,
+        anger_score: float = 1.0,
+        disgust_score: float = 1.0,
+        boredom_score: float = 1.0,
+        neutral_score: float = 1.0
+    ):
+        """Determine tone and brevity based on sentiment scores."""
+        return self.predictor(
+            interest_score=str(interest_score),
+            anger_score=str(anger_score),
+            disgust_score=str(disgust_score),
+            boredom_score=str(boredom_score),
+            neutral_score=str(neutral_score)
+        )
+
+
+class ToneAwareResponseGenerator(dspy.Module):
+    """Generate concise, tone-appropriate responses respecting brevity constraints."""
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(ToneAwareResponseSignature)
+
+    def forward(
+        self,
+        conversation_history=None,
+        user_message: str = "",
+        tone_directive: str = "be helpful",
+        max_sentences: str = "3",
+        current_state: str = "greeting"
+    ):
+        """Generate response adapted to tone and sentence limit."""
+        conversation_history = get_default_history(conversation_history)
+        return self.predictor(
+            conversation_history=conversation_history,
+            user_message=user_message,
+            tone_directive=tone_directive,
+            max_sentences=max_sentences,
+            current_state=current_state
         )

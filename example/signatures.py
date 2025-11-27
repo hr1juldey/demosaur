@@ -100,6 +100,60 @@ class DateParsingSignature(dspy.Signature):
     )
 
 
+class SentimentToneSignature(dspy.Signature):
+    """Determine appropriate tone and brevity based on sentiment scores."""
+
+    interest_score = dspy.InputField(
+        desc="Customer interest level (1-10)"
+    )
+    anger_score = dspy.InputField(
+        desc="Customer anger level (1-10)"
+    )
+    disgust_score = dspy.InputField(
+        desc="Customer disgust level (1-10)"
+    )
+    boredom_score = dspy.InputField(
+        desc="Customer boredom level (1-10)"
+    )
+    neutral_score = dspy.InputField(
+        desc="Customer neutral level (1-10)"
+    )
+
+    tone_directive = dspy.OutputField(
+        desc="Tone instruction (e.g., 'direct and brief', 'engaging and conversational', 'detailed and helpful')"
+    )
+    max_sentences = dspy.OutputField(
+        desc="Maximum number of sentences (1-4)"
+    )
+    reasoning = dspy.OutputField(
+        desc="Why this tone and length"
+    )
+
+
+class ToneAwareResponseSignature(dspy.Signature):
+    """Generate response adapted to tone and brevity constraints."""
+
+    conversation_history: dspy.History = dspy.InputField(
+        desc="Full conversation history"
+    )
+    user_message = dspy.InputField(
+        desc="Latest user message"
+    )
+    tone_directive = dspy.InputField(
+        desc="Tone instruction from SentimentToneAnalyzer"
+    )
+    max_sentences = dspy.InputField(
+        desc="Maximum number of sentences to use"
+    )
+    current_state = dspy.InputField(
+        desc="Current conversation state"
+    )
+
+    response = dspy.OutputField(
+        desc="Concise, tone-appropriate response within sentence limit"
+    )
+
+
 class ResponseGenerationSignature(dspy.Signature):
     """Generate empathetic, context-aware response."""
 

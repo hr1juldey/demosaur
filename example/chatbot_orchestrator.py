@@ -204,31 +204,47 @@ class ChatbotOrchestrator:
         sentiment: Optional[ValidatedSentimentScores],
         extracted_data: Optional[Dict[str, Any]]
     ) -> str:
-        """Generate empathetic LLM response based on context and sentiment."""
-        from modules import EmpathyResponseGenerator
+        """Generate empathetic LLM response based on context and sentiment using DSPy pipeline."""
+        from modules import SentimentToneAnalyzer, ToneAwareResponseGenerator
 
         try:
-            generator = EmpathyResponseGenerator()
-            sentiment_context = ""
-            if sentiment:
-                sentiment_context = (
-                    f"Interest: {sentiment.interest}, Anger: {sentiment.anger}, "
-                    f"Disgust: {sentiment.disgust}, Boredom: {sentiment.boredom}"
-                )
-
-            result = generator(
-                conversation_history=history,
-                current_state=current_state.value,
-                user_message=user_message,
-                sentiment_context=sentiment_context
+            # Step 1: Analyze sentiment and determine appropriate tone + brevity
+            tone_analyzer = SentimentToneAnalyzer()
+            tone_result = tone_analyzer(
+                interest_score=sentiment.interest if sentiment else 5.0,
+                anger_score=sentiment.anger if sentiment else 1.0,
+                disgust_score=sentiment.disgust if sentiment else 1.0,
+                boredom_score=sentiment.boredom if sentiment else 1.0,
+                neutral_score=sentiment.neutral if sentiment else 1.0
             )
+
+            tone_directive = tone_result.tone_directive if tone_result else "be helpful"
+            max_sentences = tone_result.max_sentences if tone_result else "3"
+
+            # Step 2: Generate response with tone and brevity constraints
+            response_generator = ToneAwareResponseGenerator()
+            result = response_generator(
+                conversation_history=history,
+                user_message=user_message,
+                tone_directive=tone_directive,
+                max_sentences=max_sentences,
+                current_state=current_state.value
+            )
+
             response = result.response if result else ""
+
+            # Log the tone decision for debugging
+            logger.debug(
+                f"🎯 TONE ANALYSIS: tone='{tone_directive}' max_sentences={max_sentences}"
+            )
+
             # Ensure we never return empty string
             if not response or not response.strip():
-                return "I understand. How can I help you further?"
+                return "I understand. How can I help?"
             return response
-        except Exception:
-            return "I understand. How can I help you further?"
+        except Exception as e:
+            logger.warning(f"Tone-aware generation failed: {e}, using fallback")
+            return "I understand. How can I help?"
 
     def _determine_next_state(
         self,
