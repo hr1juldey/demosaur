@@ -5,7 +5,8 @@
 Run the conversation simulator and observe response lengths:
 
 ### Scenario 1: Angry Customer
-```
+
+```bash
 Turn: "That's too much"
 Expected:
   - SentimentToneAnalyzer output: anger=8, tone="Direct, solution-focused, brief", max_sentences=2
@@ -22,7 +23,8 @@ Previous (wrong):
 ```
 
 ### Scenario 2: Bored Customer
-```
+
+```bash
 Turn: "meh"
 Expected:
   - SentimentToneAnalyzer output: boredom=7, tone="Engaging, conversational, quick", max_sentences=3
@@ -34,7 +36,8 @@ Example response:
 ```
 
 ### Scenario 3: Interested Customer
-```
+
+```bash
 Turn: "Tell me more about your premium service"
 Expected:
   - SentimentToneAnalyzer output: interest=8, tone="Enthusiastic, detailed, helpful", max_sentences=4
@@ -65,7 +68,7 @@ After running tests:
 
 Enable DEBUG logging and look for:
 
-```
+```bash
 🎯 TONE ANALYSIS: tone='Direct, solution-focused, brief' max_sentences=2
 🎯 TONE ANALYSIS: tone='Engaging, conversational, quick' max_sentences=3
 🎯 TONE ANALYSIS: tone='Enthusiastic, detailed, helpful' max_sentences=4
@@ -94,18 +97,24 @@ Enable DEBUG logging and look for:
 ## If Tests Fail
 
 ### Problem: Responses still too long
+
 **Solution**: SentimentToneSignature might be outputting "4" instead of "2". Check:
+
 1. Sentiment scores being passed correctly
 2. LLM model capability (try Claude or GPT-4 if using Ollama)
 
 ### Problem: Tone doesn't match sentiment
+
 **Solution**: ToneAwareResponseSignature might ignore the tone_directive. Try:
+
 1. Make tone_directive more explicit in the description
 2. Add examples in the signature
 3. Test with a more capable LLM
 
 ### Problem: No `🎯 TONE ANALYSIS` logs
+
 **Solution**: Logger level might be above DEBUG. Check main.py:
+
 ```python
 'root': {
     'level': 'DEBUG',  # Should be DEBUG, not INFO
