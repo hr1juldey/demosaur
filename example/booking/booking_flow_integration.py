@@ -10,13 +10,14 @@ from booking.state_manager import BookingStateMachine, BookingState
 
 
 class BookingFlowManager:
-    """Orchestrates entire booking flow. Facade hiding Phase 2 complexity."""
+    """Orchestrates entire booking flow with typo detection support."""
 
-    def __init__(self, conversation_id: str):
+    def __init__(self, conversation_id: str, typo_detector=None):
         self.conversation_id = conversation_id
         self.scratchpad = ScratchpadManager(conversation_id)
         self.state_machine = BookingStateMachine()
-        self.handler = ConfirmationHandler(self.scratchpad)
+        self.handler = ConfirmationHandler(self.scratchpad, typo_detector=typo_detector)
+        self.typo_detector = typo_detector
 
     def process_for_booking(self, user_message: str, extracted_data: dict,
                            intent=None) -> Tuple[str, Optional[ServiceRequest]]:
@@ -38,11 +39,21 @@ class BookingFlowManager:
             # Transition to confirmation
             self.state_machine.transition(BookingState.CONFIRMATION)
             summary = ConfirmationGenerator.generate_summary(self.scratchpad.form)
+            # Store confirmation message for typo detection
+            self.handler.set_confirmation_message(summary)
             return summary, None
 
         # Step 3: Handle confirmation actions (if in confirmation state)
         if self.state_machine.get_current_state() == BookingState.CONFIRMATION:
-            action = self.handler.detect_action(user_message)
+            # Use typo detection if available
+            if self.typo_detector:
+                action, typo_result = self.handler.detect_action_with_typo_check(user_message)
+
+                # If typo detected, return suggestion
+                if action == ConfirmationAction.TYPO_DETECTED and typo_result:
+                    return typo_result["suggestion"], None
+            else:
+                action = self.handler.detect_action(user_message)
 
             if action == ConfirmationAction.CONFIRM:
                 # Build service request and move to booking

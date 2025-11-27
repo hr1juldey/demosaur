@@ -4,6 +4,43 @@ import pytest
 from booking import ScratchpadManager, ConfirmationHandler, ConfirmationAction
 
 
+class MockTypoDetectorResult:
+    """Mock typo detector result."""
+    def __init__(self, is_typo, intended_action, confidence, suggestion):
+        self.is_typo = is_typo
+        self.intended_action = intended_action
+        self.confidence = confidence
+        self.suggestion = suggestion
+
+
+class MockTypoDetector:
+    """Mock typo detector for testing."""
+    def __init__(self, return_typo=False, intended="confirm"):
+        self.return_typo = return_typo
+        self.intended = intended
+        self.called_with = None
+
+    def __call__(self, last_bot_message="", user_response="", expected_actions=""):
+        self.called_with = {
+            "last_bot_message": last_bot_message,
+            "user_response": user_response,
+            "expected_actions": expected_actions
+        }
+        if self.return_typo:
+            return MockTypoDetectorResult(
+                is_typo="true",
+                intended_action=self.intended,
+                confidence="high",
+                suggestion=f"Did you mean '{self.intended}'?"
+            )
+        return MockTypoDetectorResult(
+            is_typo="false",
+            intended_action="",
+            confidence="low",
+            suggestion=""
+        )
+
+
 class TestConfirmationHandler:
     """Test confirmation action handling."""
 
@@ -105,6 +142,109 @@ class TestConfirmationHandler:
         """Test parsing non-field edit."""
         field = self.handler.parse_edit_instruction("edit something")
         assert field is None
+
+
+class TestTypoDetection:
+    """Test typo detection in confirmation handler."""
+
+    def setup_method(self):
+        """Setup for each test."""
+        self.scratchpad = ScratchpadManager()
+
+    def test_typo_detection_with_typo(self):
+        """Test typo detection identifies typo."""
+        mock_detector = MockTypoDetector(return_typo=True, intended="confirm")
+        handler = ConfirmationHandler(self.scratchpad, typo_detector=mock_detector)
+
+        # Set confirmation message
+        handler.set_confirmation_message("Please confirm your booking")
+
+        # Test typo input
+        action, typo_result = handler.detect_action_with_typo_check("confrim")
+
+        assert action == ConfirmationAction.TYPO_DETECTED
+        assert typo_result is not None
+        assert typo_result["is_typo"] is True
+        assert typo_result["intended_action"] == "confirm"
+        assert "Did you mean" in typo_result["suggestion"]
+
+    def test_typo_detection_no_typo(self):
+        """Test typo detection with valid input."""
+        mock_detector = MockTypoDetector(return_typo=False)
+        handler = ConfirmationHandler(self.scratchpad, typo_detector=mock_detector)
+
+        handler.set_confirmation_message("Please confirm your booking")
+
+        # Test valid input
+        action, typo_result = handler.detect_action_with_typo_check("yes")
+
+        assert action == ConfirmationAction.CONFIRM
+        assert typo_result is None
+
+    def test_typo_detection_without_confirmation_message(self):
+        """Test typo detection skips when no confirmation shown."""
+        mock_detector = MockTypoDetector(return_typo=True)
+        handler = ConfirmationHandler(self.scratchpad, typo_detector=mock_detector)
+
+        # No confirmation message set
+        action, typo_result = handler.detect_action_with_typo_check("confrim")
+
+        # Should fallback to normal detection
+        assert action == ConfirmationAction.EDIT
+        assert typo_result is None
+
+    def test_typo_detection_without_detector(self):
+        """Test graceful handling when no detector provided."""
+        handler = ConfirmationHandler(self.scratchpad, typo_detector=None)
+
+        handler.set_confirmation_message("Please confirm your booking")
+        action, typo_result = handler.detect_action_with_typo_check("confrim")
+
+        # Should fallback to normal detection
+        assert action == ConfirmationAction.EDIT
+        assert typo_result is None
+
+    def test_set_confirmation_message(self):
+        """Test setting confirmation message."""
+        handler = ConfirmationHandler(self.scratchpad)
+
+        msg = "📋 BOOKING CONFIRMATION [Edit] [Confirm] [Cancel]"
+        handler.set_confirmation_message(msg)
+
+        assert handler.last_confirmation_message == msg
+
+    def test_typo_detection_common_typos(self):
+        """Test detection of common typos."""
+        test_cases = [
+            ("confrim", "confirm"),
+            ("bokking", "book"),
+            ("cancle", "cancel"),
+        ]
+
+        for typo, intended in test_cases:
+            mock_detector = MockTypoDetector(return_typo=True, intended=intended)
+            handler = ConfirmationHandler(self.scratchpad, typo_detector=mock_detector)
+            handler.set_confirmation_message("Please respond")
+
+            action, typo_result = handler.detect_action_with_typo_check(typo)
+
+            assert action == ConfirmationAction.TYPO_DETECTED
+            assert typo_result["intended_action"] == intended
+
+    def test_typo_detection_valid_one_word_answers(self):
+        """Test that valid one-word answers are NOT detected as typos."""
+        valid_answers = ["yes", "no", "ok"]
+
+        for answer in valid_answers:
+            mock_detector = MockTypoDetector(return_typo=False)
+            handler = ConfirmationHandler(self.scratchpad, typo_detector=mock_detector)
+            handler.set_confirmation_message("Please respond")
+
+            action, typo_result = handler.detect_action_with_typo_check(answer)
+
+            # Should be detected as normal action, not typo
+            assert action in [ConfirmationAction.CONFIRM, ConfirmationAction.CANCEL]
+            assert typo_result is None
 
 
 if __name__ == "__main__":

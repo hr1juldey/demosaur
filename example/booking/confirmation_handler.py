@@ -1,7 +1,7 @@
 """ConfirmationHandler: Handle user actions on confirmation screen."""
 
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from booking.scratchpad import ScratchpadManager
 
 
@@ -11,13 +11,16 @@ class ConfirmationAction(str, Enum):
     EDIT = "edit"
     CANCEL = "cancel"
     INVALID = "invalid"
+    TYPO_DETECTED = "typo_detected"
 
 
 class ConfirmationHandler:
-    """Handle confirmation screen interactions."""
+    """Handle confirmation screen interactions with typo detection."""
 
-    def __init__(self, scratchpad: ScratchpadManager):
+    def __init__(self, scratchpad: ScratchpadManager, typo_detector=None):
         self.scratchpad = scratchpad
+        self.typo_detector = typo_detector
+        self.last_confirmation_message = ""
 
     def detect_action(self, user_input: str) -> ConfirmationAction:
         """
@@ -118,3 +121,48 @@ class ConfirmationHandler:
                 return field
 
         return None
+
+    def detect_action_with_typo_check(self, user_input: str) -> Tuple[ConfirmationAction, Optional[Dict[str, Any]]]:
+        """
+        Detect action with typo detection.
+
+        Only runs typo detection when:
+        - A confirmation message was shown (service card with buttons)
+        - User response doesn't match known actions EXACTLY
+        - typo_detector is available
+
+        Returns:
+            (action, typo_result)
+            - action: ConfirmationAction
+            - typo_result: Dict with is_typo, intended_action, suggestion (if typo detected)
+        """
+        # If we have typo detector and confirmation message, check typos FIRST
+        if self.typo_detector and self.last_confirmation_message:
+            try:
+                result = self.typo_detector(
+                    last_bot_message=self.last_confirmation_message,
+                    user_response=user_input,
+                    expected_actions="confirm, edit, cancel, yes, no"
+                )
+
+                # Parse result
+                is_typo = str(result.is_typo).lower() == "true"
+                if is_typo:
+                    return (ConfirmationAction.TYPO_DETECTED, {
+                        "is_typo": True,
+                        "intended_action": result.intended_action,
+                        "confidence": result.confidence,
+                        "suggestion": result.suggestion
+                    })
+
+            except Exception:
+                # If typo detection fails, fallback to normal detection
+                pass
+
+        # If no typo detected, use normal action detection
+        action = self.detect_action(user_input)
+        return (action, None)
+
+    def set_confirmation_message(self, message: str):
+        """Store the last confirmation message shown to user."""
+        self.last_confirmation_message = message

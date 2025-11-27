@@ -13,6 +13,7 @@ from signatures import (
     IntentClassificationSignature,
     SentimentToneSignature,
     ToneAwareResponseSignature,
+    TypoCorrectionSignature,
 )
 
 
@@ -164,4 +165,31 @@ class ToneAwareResponseGenerator(dspy.Module):
             tone_directive=tone_directive,
             max_sentences=max_sentences,
             current_state=current_state
+        )
+
+
+class TypoDetector(dspy.Module):
+    """Detect typos in confirmation responses and suggest corrections.
+
+    Only triggers when:
+    - Service card/confirmation was shown with action buttons
+    - User response appears to be typo/gibberish
+    - Response is NOT a valid one-word answer
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(TypoCorrectionSignature)
+
+    def forward(
+        self,
+        last_bot_message: str = "",
+        user_response: str = "",
+        expected_actions: str = "confirm, edit, cancel"
+    ):
+        """Detect typos and suggest corrections."""
+        return self.predictor(
+            last_bot_message=last_bot_message,
+            user_response=user_response,
+            expected_actions=expected_actions
         )

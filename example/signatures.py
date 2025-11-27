@@ -192,3 +192,36 @@ class IntentClassificationSignature(dspy.Signature):
         desc="The classified intent (one of: book, inquire, complaint, small_talk, cancel, reschedule, payment)"
     )
 
+
+class TypoCorrectionSignature(dspy.Signature):
+    """Detect typos in user response to service cards/action buttons and suggest corrections.
+
+    ONLY triggers when:
+    1. A service card with action buttons was just shown (confirmation, options, etc.)
+    2. User response is a typo/gibberish/null (not a formed reply)
+    3. User response is NOT a proper one-word answer like 'yes', 'no', 'ok'
+    """
+
+    last_bot_message = dspy.InputField(
+        desc="The last bot message shown to user (service card/confirmation with buttons)"
+    )
+    user_response = dspy.InputField(
+        desc="User's response to the service card (potentially a typo)"
+    )
+    expected_actions = dspy.InputField(
+        desc="List of expected action words from the service card buttons (e.g., 'confirm, edit, cancel')"
+    )
+
+    is_typo = dspy.OutputField(
+        desc="true if user response is a typo/gibberish, false if it's a valid response (even one word)"
+    )
+    intended_action = dspy.OutputField(
+        desc="The likely intended action based on typo analysis (e.g., 'confirm' from 'confrim'). Empty if not a typo."
+    )
+    confidence = dspy.OutputField(
+        desc="Confidence in typo detection and correction (low/medium/high)"
+    )
+    suggestion = dspy.OutputField(
+        desc="Friendly 'Did you mean...?' message for the user. Empty if not a typo."
+    )
+

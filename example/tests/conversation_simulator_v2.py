@@ -685,12 +685,12 @@ class Phase2ConversationSimulator:
             # Detect if this is a spelling mistake
             if "confrim" in message or "bokking" in message or "apponitment" in message:
                 metrics.spelling_mistakes += 1
-                print(f"   ⚠️  Spelling mistake detected!")
+                print("   ⚠️  Spelling mistake detected!")
 
             # Detect if this is a correction
             if turn_type in ["correction"]:
                 metrics.corrections += 1
-                print(f"   ✅ Customer correcting spelling")
+                print("   ✅ Customer correcting spelling")
 
             # Determine which API to call
             if in_confirmation_flow and turn_type in ["button_confirm", "edit", "edit_phone", "cancel"]:
