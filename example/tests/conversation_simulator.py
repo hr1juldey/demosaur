@@ -148,7 +148,7 @@ class ConversationSimulator:
 │ 📦 EXTRACTED: {str(extracted) if extracted else 'None'}
 │ 💡 ACTIONS: {'Sentiment✓' if sentiment else 'Sentiment✗'}  {'Extract✓' if extracted else 'Extract✗'}  {'Engage' if suggestions.get('add_engagement') else 'Normal'}
 │
-└────────────────────────────────────────────────────────────────────────────
+└─────────────────────────────────────────────────────────────────────────────────────────
 """
         return metadata
     
@@ -204,7 +204,7 @@ class ConversationSimulator:
     def print_summary(self, conv_id: str, metrics: ConversationMetrics):
         """Print conversation summary."""
         print(f"\n{'='*80}")
-        print(f"📊 CONVERSATION SUMMARY")
+        print("📊 CONVERSATION SUMMARY")
         print(f"{'='*80}")
         print(f"  Turns: {metrics.turn_number:<3}  |  Total Time: {metrics.total_latency:.2f}s  |  Avg: {metrics.total_latency / metrics.turn_number:.3f}s")
         print(f"  Min: {min(metrics.turn_latencies):.3f}s  |  Max: {max(metrics.turn_latencies):.3f}s")
@@ -246,12 +246,12 @@ class ConversationSimulator:
         print(f"\n{'#'*80}")
         print(f"🎯 OVERALL SUMMARY - {len(all_metrics)} CONVERSATIONS")
         print(f"{'#'*80}")
-        print(f"\n  📈 PERFORMANCE METRICS:")
+        print("\n  📈 PERFORMANCE METRICS:")
         print(f"     Total Turns: {total_turns}")
         print(f"     Total Time: {total_latency:.2f}s")
         print(f"     Avg per Turn: {total_latency / total_turns:.3f}s")
         print(f"     Range: {min(all_latencies):.3f}s - {max(all_latencies):.3f}s")
-        print(f"\n  🎯 INTELLIGENCE METRICS:")
+        print("\n  🎯 INTELLIGENCE METRICS:")
         print(f"     Data Extractions: {total_extractions}")
         print(f"     Sentiment Checks: {total_sentiment_checks}")
         print(f"     Success Rate: {(total_extractions / total_turns * 100):.1f}%")

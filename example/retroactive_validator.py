@@ -77,6 +77,7 @@ class RetroactiveScanner:
         Returns the most recent name mentioned in conversation.
         """
         if not history or not hasattr(history, 'messages'):
+            logger.debug("🔍 scan_for_name: No history or no messages attribute")
             return None
 
         try:
@@ -87,36 +88,46 @@ class RetroactiveScanner:
                 if msg.get('role') == 'user'
             ]
 
+            logger.debug(f"🔍 scan_for_name: Found {len(user_messages)} user messages")
             if not user_messages:
+                logger.debug("🔍 scan_for_name: No user messages found")
                 return None
 
             # Try to extract name from most recent user message first
-            for message in reversed(user_messages):
+            for idx, message in enumerate(reversed(user_messages)):
                 try:
+                    logger.debug(f"🔍 scan_for_name: Attempting extraction from message: {message[:50]}...")
                     result = self.name_extractor(
                         conversation_history=history,
                         user_message=message
                     )
 
+                    logger.debug(f"🔍 scan_for_name: Extraction result - first_name={result.first_name}, last_name={getattr(result, 'last_name', 'N/A')}")
+
                     first_name = str(result.first_name).strip()
                     if first_name and first_name.lower() not in ["none", "n/a", "unknown"]:
+                        logger.info(f"✅ scan_for_name: Successfully extracted '{first_name}'")
                         return ValidatedName(
                             first_name=first_name,
                             last_name=str(result.last_name).strip() if hasattr(result, 'last_name') else "",
                             full_name=f"{first_name} {getattr(result, 'last_name', '')}".strip(),
                             metadata=ExtractionMetadata(
                                 confidence=0.8,
-                                extraction_method="retroactive_dspy",
+                                extraction_method="dspy",
                                 extraction_source=message
                             )
                         )
-                except Exception:
+                    else:
+                        logger.debug(f"🔍 scan_for_name: Extracted name '{first_name}' is invalid (None/Unknown)")
+                except Exception as e:
+                    logger.debug(f"🔍 scan_for_name: Exception on message {idx}: {type(e).__name__}: {e}")
                     continue
 
+            logger.debug("🔍 scan_for_name: No valid name found in any message")
             return None
 
         except Exception as e:
-            logger.error(f"Retroactive name scan failed: {type(e).__name__}: {e}")
+            logger.error(f"❌ Retroactive name scan failed: {type(e).__name__}: {e}")
             return None
 
     def scan_for_vehicle_details(self, history: dspy.History) -> Optional[ValidatedVehicleDetails]:
@@ -126,7 +137,7 @@ class RetroactiveScanner:
         Searches for both brand/model AND plate number, combining them if found separately.
         """
         if not history or not hasattr(history, 'messages'):
-            logger.debug("No history or no messages attribute")
+            logger.debug("🔍 scan_for_vehicle: No history or no messages attribute")
             return None
 
         try:
@@ -138,57 +149,68 @@ class RetroactiveScanner:
             ]
 
             if not user_messages:
-                logger.debug("No user messages found in history")
+                logger.debug("🔍 scan_for_vehicle: No user messages found in history")
                 return None
 
-            logger.debug(f"Found {len(user_messages)} user messages, combining last 3...")
+            logger.debug(f"🔍 scan_for_vehicle: Found {len(user_messages)} user messages, combining last 3...")
             # Combine recent messages to create context (e.g., "I have Honda City with plate MH12AB1234")
             combined_context = " ".join(user_messages[-3:])  # Last 3 messages
-            logger.debug(f"Combined context: '{combined_context[:100]}...'")
+            logger.debug(f"🔍 scan_for_vehicle: Combined context: '{combined_context[:100]}...'")
 
             # Try extraction on combined context
             try:
+                logger.debug("🔍 scan_for_vehicle: Calling vehicle extractor...")
                 result = self.vehicle_extractor(
                     conversation_history=history,
                     user_message=combined_context
                 )
 
+                logger.debug(f"🔍 scan_for_vehicle: Raw extraction result - brand={result.brand}, model={result.model}, plate={result.number_plate}")
+
                 brand = str(result.brand).strip() if result.brand else None
                 model = str(result.model).strip() if result.model else None
                 plate = str(result.number_plate).strip() if result.number_plate else None
 
+                logger.debug(f"🔍 scan_for_vehicle: After processing - brand='{brand}', model='{model}', plate='{plate}'")
+
                 # Only return if we have at least some data
                 if brand or model or plate:
                     if brand and brand.lower() not in ["unknown", "none"]:
+                        logger.info(f"✅ scan_for_vehicle: Found brand '{brand}', model '{model}'")
                         return ValidatedVehicleDetails(
                             brand=brand,
                             model=model or "Unknown",
                             number_plate=plate or "Unknown",
                             metadata=ExtractionMetadata(
                                 confidence=0.75,
-                                extraction_method="retroactive_combined",
+                                extraction_method="dspy",
                                 extraction_source=combined_context
                             )
                         )
                     elif plate and plate.lower() not in ["unknown", "none"]:
+                        logger.info(f"✅ scan_for_vehicle: Found plate '{plate}' (brand/model missing)")
                         return ValidatedVehicleDetails(
                             brand=brand or "Unknown",
                             model=model or "Unknown",
                             number_plate=plate,
                             metadata=ExtractionMetadata(
                                 confidence=0.75,
-                                extraction_method="retroactive_combined",
+                                extraction_method="dspy",
                                 extraction_source=combined_context
                             )
                         )
+                    else:
+                        logger.debug("🔍 scan_for_vehicle: Extracted data invalid (brand/model/plate all None/Unknown)")
 
-            except Exception:
+            except Exception as e:
+                logger.debug(f"🔍 scan_for_vehicle: Exception during extraction: {type(e).__name__}: {e}")
                 pass
 
+            logger.debug("🔍 scan_for_vehicle: No valid vehicle data found")
             return None
 
         except Exception as e:
-            logger.error(f"Retroactive vehicle scan failed: {type(e).__name__}: {e}")
+            logger.error(f"❌ Retroactive vehicle scan failed: {type(e).__name__}: {e}")
             return None
 
     def scan_for_date(self, history: dspy.History) -> Optional[ValidatedDate]:
@@ -198,6 +220,7 @@ class RetroactiveScanner:
         Searches all user messages for date references.
         """
         if not history or not hasattr(history, 'messages'):
+            logger.debug("🔍 scan_for_date: No history or no messages attribute")
             return None
 
         try:
@@ -207,35 +230,45 @@ class RetroactiveScanner:
                 if msg.get('role') == 'user'
             ]
 
+            logger.debug(f"🔍 scan_for_date: Found {len(user_messages)} user messages")
             if not user_messages:
+                logger.debug("🔍 scan_for_date: No user messages found")
                 return None
 
             # Try most recent date-like message first
-            for message in reversed(user_messages):
+            for idx, message in enumerate(reversed(user_messages)):
                 try:
+                    logger.debug(f"🔍 scan_for_date: Attempting extraction from message {idx}: {message[:50]}...")
                     result = self.date_parser(
                         user_message=message,
                         conversation_history=history
                     )
 
+                    logger.debug(f"🔍 scan_for_date: Extraction result - date_str={result.date_str}")
+
                     date_str = str(result.date_str).strip() if result.date_str else None
                     if date_str and date_str.lower() not in ["none", "unknown"]:
+                        logger.info(f"✅ scan_for_date: Successfully extracted '{date_str}'")
                         return ValidatedDate(
                             date_str=date_str,
                             confidence=0.8,
                             metadata=ExtractionMetadata(
                                 confidence=0.8,
-                                extraction_method="retroactive_dspy",
+                                extraction_method="dspy",
                                 extraction_source=message
                             )
                         )
-                except Exception:
+                    else:
+                        logger.debug(f"🔍 scan_for_date: Extracted date '{date_str}' is invalid (None/Unknown)")
+                except Exception as e:
+                    logger.debug(f"🔍 scan_for_date: Exception on message {idx}: {type(e).__name__}: {e}")
                     continue
 
+            logger.debug("🔍 scan_for_date: No valid date found in any message")
             return None
 
         except Exception as e:
-            logger.error(f"Retroactive date scan failed: {type(e).__name__}: {e}")
+            logger.error(f"❌ Retroactive date scan failed: {type(e).__name__}: {e}")
             return None
 
 
@@ -288,13 +321,18 @@ class ConversationValidator:
 
         if any(field in missing_fields for field in ["vehicle_brand", "vehicle_model", "vehicle_plate"]):
             vehicle_data = self.scanner.scan_for_vehicle_details(history)
+            logger.debug(f"🔄 validate_and_complete: vehicle_data result = {vehicle_data}")
             if vehicle_data:
+                logger.debug(f"🔄 validate_and_complete: Updating vehicle data: brand={vehicle_data.brand}, model={vehicle_data.model}, plate={vehicle_data.number_plate}")
                 updated_data.update({
                     "vehicle_brand": vehicle_data.brand,
                     "vehicle_model": vehicle_data.model,
                     "vehicle_plate": vehicle_data.number_plate
                 })
                 logger.info(f"Retroactively filled vehicle: {vehicle_data.brand} {vehicle_data.model}")
+                logger.debug(f"🔄 validate_and_complete: After update, updated_data={updated_data}")
+            else:
+                logger.debug(f"🔄 validate_and_complete: vehicle_data is None/falsy, not updating")
 
         if "appointment_date" in missing_fields:
             date_data = self.scanner.scan_for_date(history)

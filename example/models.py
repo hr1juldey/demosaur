@@ -873,7 +873,7 @@ class ValidatedIntent(BaseModel):
         ..., description="Classified intent"
     )
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence in intent classification")
-    reasoning: str = Field(..., min_length=10, max_length=500, description="Reasoning for intent classification")
+    reasoning: str = Field(..., min_length=10, max_length=2000, description="Reasoning for intent classification")
     metadata: ExtractionMetadata = Field(default_factory=ExtractionMetadata, description="Extraction metadata")
 
     @computed_field
