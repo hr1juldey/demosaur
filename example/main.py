@@ -2,6 +2,7 @@
 FastAPI integration for the intelligent chatbot with graceful startup/shutdown.
 """
 import logging
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
@@ -11,8 +12,32 @@ from config import ConversationState
 from chatbot_orchestrator import ChatbotOrchestrator
 from dspy_config import dspy_configurator
 
+# Configure logging to show application-level logs (not just ASGI traces)
+logging_config = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        },
+    },
+    'handlers': {
+        'default': {
+            'formatter': 'default',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+        },
+    },
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['default'],
+    },
+}
+
+import logging.config
+logging.config.dictConfig(logging_config)
+
 logger = logging.getLogger("yawlit.chatbot")
-logging.basicConfig(level=logging.DEBUG)
 
 
 @asynccontextmanager
