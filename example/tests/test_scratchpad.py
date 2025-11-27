@@ -58,8 +58,9 @@ class TestScratchpadManager:
         self.scratchpad.add_field("customer", "first_name", "John", "direct_extraction", 1)
         self.scratchpad.add_field("customer", "phone", "555-0123", "direct_extraction", 2)
 
-        result = self.scratchpad.clear_section("customer")
-        assert result is True
+        # Clear using delete (since clear_section removed)
+        self.scratchpad.delete_field("customer", "first_name")
+        self.scratchpad.delete_field("customer", "phone")
         assert len(self.scratchpad.get_section("customer")) == 0
 
     def test_clear_all(self):

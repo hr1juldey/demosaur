@@ -226,6 +226,38 @@ async def extract_data(request: DataExtractionRequest, req: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/confirmation")
+async def handle_confirmation(
+    conversation_id: str,
+    user_input: str,
+    action: str,
+    req: Request
+):
+    """Handle user actions on confirmation screen (confirm/edit/cancel)."""
+    from booking_orchestrator_bridge import BookingOrchestrationBridge
+
+    try:
+        # Initialize bridge if needed
+        bridge = BookingOrchestrationBridge()
+        bridge.initialize_booking(conversation_id)
+
+        # Process through booking flow
+        response_msg, service_request = bridge.process_booking_turn(
+            user_input, {}, intent=None
+        )
+
+        return {
+            "message": response_msg,
+            "service_request_id": service_request.service_request_id
+            if service_request else None,
+            "state": bridge.get_booking_state(),
+        }
+
+    except Exception as e:
+        logger.exception("Error handling confirmation: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     # In production prefer to run `uvicorn module:app --host 0.0.0.0 --port 8002 --workers 1`

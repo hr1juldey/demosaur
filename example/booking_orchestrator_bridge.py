@@ -1,0 +1,67 @@
+"""Bridge: Integrate Phase 2 booking flow with Phase 1 orchestrator."""
+
+from typing import Optional, Tuple
+from booking.booking_flow_integration import BookingFlowManager
+from booking.service_request import ServiceRequest
+from models import ValidatedIntent
+
+
+class BookingOrchestrationBridge:
+    """Adapter connecting chatbot orchestrator to booking flow."""
+
+    def __init__(self):
+        self.booking_manager: Optional[BookingFlowManager] = None
+
+    def initialize_booking(self, conversation_id: str) -> None:
+        """Start new booking flow."""
+        self.booking_manager = BookingFlowManager(conversation_id)
+
+    def process_booking_turn(
+        self,
+        user_message: str,
+        extracted_data: dict,
+        intent: Optional[ValidatedIntent] = None
+    ) -> Tuple[str, Optional[ServiceRequest]]:
+        """
+        Process user message through booking flow.
+
+        Returns:
+            (response_message, service_request_if_confirmed)
+        """
+        if not self.booking_manager:
+            return "Unable to process booking.", None
+
+        return self.booking_manager.process_for_booking(
+            user_message, extracted_data, intent
+        )
+
+    def should_use_booking_flow(self, intent: Optional[ValidatedIntent]) -> bool:
+        """Check if message should trigger booking flow."""
+        if not intent:
+            return False
+        # Check if intent is booking-related
+        return hasattr(intent, 'intent_class') and intent.intent_class == "book"
+
+    def is_in_booking_flow(self) -> bool:
+        """Check if currently in active booking flow."""
+        return self.booking_manager is not None
+
+    def get_booking_state(self) -> Optional[str]:
+        """Get current booking state."""
+        if not self.booking_manager:
+            return None
+        return self.booking_manager.get_state().value
+
+    def reset_booking_flow(self) -> None:
+        """Reset booking flow (for cancellation)."""
+        if self.booking_manager:
+            self.booking_manager.reset()
+            self.booking_manager = None
+
+    def complete_booking_flow(self) -> Optional[ServiceRequest]:
+        """Get completed service request."""
+        if not self.booking_manager:
+            return None
+        if self.booking_manager.is_complete():
+            return self.booking_manager.scratchpad
+        return None
