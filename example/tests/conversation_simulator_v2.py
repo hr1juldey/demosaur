@@ -7,8 +7,9 @@ Tests Phase 2 booking flow with realistic scenarios including:
 - Spelling mistakes and error recovery
 - Confirmation flow (scratchpad → confirmation → booking)
 - State machine validation
+- Typo detection verification (via real DSPy LLM)
 
-NO MODULE-LEVEL ACCESS - API-ONLY communication
+NO MODULE-LEVEL ACCESS - API-ONLY communication (except for direct typo detection testing)
 """
 import httpx
 import time
@@ -17,6 +18,11 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports (for typo detection verification only)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 # API Configuration
@@ -339,6 +345,11 @@ class Phase2Metrics:
     spelling_mistakes: int = 0
     corrections: int = 0
 
+    # Typo detection tracking from chatbot's response (NEW)
+    typos_sent_by_user: int = 0
+    chatbot_suggested_corrections: int = 0
+    typo_detection_working: bool = False
+
     # Booking result
     booking_completed: bool = False
     service_request_id: Optional[str] = None
@@ -374,7 +385,7 @@ class Phase2ConversationSimulator:
         self.base_url = base_url
         self.client = httpx.Client(base_url=base_url, timeout=120.0)
 
-    def call_chat_api(self, conv_id: str, message: str) -> Dict[str, Any]:
+    def call_chat_api(self, conv_id: str, message: str, current_state: str = "greeting") -> Dict[str, Any]:
         """Call /chat endpoint."""
         start = time.time()
 
@@ -383,7 +394,8 @@ class Phase2ConversationSimulator:
                 API_CHAT_ENDPOINT,
                 json={
                     "conversation_id": conv_id,
-                    "user_message": message
+                    "user_message": message,
+                    "current_state": current_state
                 }
             )
             latency = time.time() - start
@@ -674,6 +686,7 @@ class Phase2ConversationSimulator:
         print(f"{'='*90}\n")
 
         in_confirmation_flow = False
+        current_state = "greeting"  # Track current state
 
         for turn_idx, turn in enumerate(scenario.turns):
             message = self.get_message_from_turn(turn)
@@ -683,8 +696,10 @@ class Phase2ConversationSimulator:
             print(f"\n👤 Customer [{turn_type}]: {message}")
 
             # Detect if this is a spelling mistake
-            if "confrim" in message or "bokking" in message or "apponitment" in message:
+            has_typo = "confrim" in message or "bokking" in message or "apponitment" in message or "conferm" in message
+            if has_typo:
                 metrics.spelling_mistakes += 1
+                metrics.typos_sent_by_user += 1
                 print("   ⚠️  Spelling mistake detected!")
 
             # Detect if this is a correction
@@ -700,6 +715,7 @@ class Phase2ConversationSimulator:
 
                 if result["success"]:
                     metrics.add_turn(result["latency"], result.get("state", "confirmation"))
+                    current_state = result.get("state", "confirmation")
 
                     # Track actions
                     if action == "confirm":
@@ -711,6 +727,7 @@ class Phase2ConversationSimulator:
                     elif action == "cancel":
                         metrics.cancel_actions += 1
                         in_confirmation_flow = False
+                        current_state = "greeting"  # Reset state after cancel
 
                     print(f"🤖 Chatbot [Confirmation API]: {result['message']}")
                 else:
@@ -719,7 +736,7 @@ class Phase2ConversationSimulator:
 
             else:
                 # Use regular chat API
-                result = self.call_chat_api(conv_id, message)
+                result = self.call_chat_api(conv_id, message, current_state)
 
                 if not result["success"]:
                     print(f"   ❌ Chat API Error: {result.get('error')}")
@@ -727,6 +744,7 @@ class Phase2ConversationSimulator:
 
                 # Update metrics
                 metrics.add_turn(result["latency"], result.get("state", "unknown"))
+                current_state = result.get("state", "unknown")  # Update current state from response
 
                 # Track scratchpad
                 completeness = result.get("scratchpad_completeness", 0.0)
@@ -744,7 +762,16 @@ class Phase2ConversationSimulator:
                     print(f"   🎯 CONFIRMATION TRIGGERED!")
 
                 # Display chatbot response
+                chatbot_response = result.get('response', '').lower()
                 print(f"🤖 Chatbot: {result['response']}")
+
+                # Check if chatbot responded with a typo correction (human perspective)
+                # Look for correction suggestions like "Did you mean..." or similar
+                correction_keywords = ["did you mean", "you mean", "typo", "spell", "correct", "correct spelling"]
+                if has_typo and any(keyword in chatbot_response for keyword in correction_keywords):
+                    metrics.chatbot_suggested_corrections += 1
+                    metrics.typo_detection_working = True
+                    print("   ✅ Chatbot suggested typo correction!")
 
                 # Display extracted data if any
                 if result.get("extracted_data"):
@@ -823,12 +850,26 @@ class Phase2ConversationSimulator:
             else:
                 print(f"     ✅ Booking completed with ID: {metrics.service_request_id}")
 
-        # Check 4: Error recovery
+        # Check 4: Error recovery & Typo detection (from user perspective)
         if metrics.spelling_mistakes > 0:
             if metrics.corrections == 0:
                 print(f"     ⚠️  {metrics.spelling_mistakes} spelling mistakes but no corrections")
             else:
                 print(f"     ✅ Recovered from {metrics.corrections}/{metrics.spelling_mistakes} spelling mistakes")
+
+            # NEW: Check if chatbot detected and suggested corrections for typos
+            print(f"\n  🔍 TYPO DETECTION (From User Perspective):")
+            print(f"     Typos Sent: {metrics.typos_sent_by_user}")
+            print(f"     Corrections Suggested by Chatbot: {metrics.chatbot_suggested_corrections}")
+
+            if metrics.typos_sent_by_user > 0:
+                correction_rate = (metrics.chatbot_suggested_corrections / metrics.typos_sent_by_user) * 100
+                print(f"     Detection Rate: {correction_rate:.1f}%")
+
+                if metrics.typo_detection_working:
+                    print(f"     ✅ TYPO DETECTION IS WORKING - Chatbot suggested corrections!")
+                else:
+                    print(f"     ⚠️  Typo detection may not be active - No corrections suggested")
 
         # Check 5: State transitions
         if len(metrics.state_transitions) == 0:
@@ -902,6 +943,9 @@ class Phase2ConversationSimulator:
         total_cancels = sum(m.cancel_actions for _, m in all_metrics)
         total_mistakes = sum(m.spelling_mistakes for _, m in all_metrics)
         total_corrections = sum(m.corrections for _, m in all_metrics)
+        total_typos_sent = sum(m.typos_sent_by_user for _, m in all_metrics)
+        total_typo_suggestions = sum(m.chatbot_suggested_corrections for _, m in all_metrics)
+        typo_detection_active = any(m.typo_detection_working for _, m in all_metrics)
 
         print(f"  📊 SCENARIO COVERAGE:")
         print(f"     Total Scenarios: {total_scenarios}")
@@ -932,6 +976,20 @@ class Phase2ConversationSimulator:
         print(f"     Corrections: {total_corrections}")
         print(f"     Recovery Rate: {total_corrections / total_mistakes * 100 if total_mistakes > 0 else 0:.1f}%")
 
+        print(f"\n  🔍 TYPO DETECTION (From User Perspective):")
+        print(f"     Typos Sent by Users: {total_typos_sent}")
+        print(f"     Typo Corrections Suggested by Chatbot: {total_typo_suggestions}")
+
+        if total_typos_sent > 0:
+            typo_detection_rate = (total_typo_suggestions / total_typos_sent) * 100
+            print(f"     Detection Rate: {typo_detection_rate:.1f}%")
+            if typo_detection_active:
+                print(f"     ✅ TYPO DETECTION FEATURE IS ACTIVE - Chatbot is helping users!")
+            else:
+                print(f"     ⚠️  Typo detection may not be triggering - Monitor in next iteration")
+        else:
+            print(f"     ℹ️  No typos were intentionally sent in these scenarios")
+
         print(f"\n  🏆 FINAL VERDICT:")
         if confirmations_triggered == total_scenarios and successful_bookings >= total_scenarios - 1:
             print(f"     ✅✅✅ PHASE 2 SYSTEM IS WORKING AS DESIGNED ✅✅✅")
@@ -942,6 +1000,8 @@ class Phase2ConversationSimulator:
             print(f"       ✅ Edit/Cancel/Confirm actions")
             print(f"       ✅ Booking completion")
             print(f"       ✅ Error recovery")
+            if typo_detection_active:
+                print(f"       ✅ Typo detection feature is active")
         else:
             print(f"     ⚠️  PHASE 2 SYSTEM HAS ISSUES")
             if confirmations_triggered < total_scenarios:
