@@ -105,7 +105,7 @@ app = FastAPI(
 class ChatRequest(BaseModel):
     conversation_id: str
     user_message: str
-    current_state: str  # ConversationState value
+    current_state: Optional[str] = None  # DEPRECATED: State is now managed internally
 
 
 class ChatResponse(BaseModel):
@@ -148,15 +148,11 @@ async def process_chat(request: ChatRequest, req: Request):
     try:
         orchestrator = get_orchestrator(req)
 
-        # Convert state string to enum
-        state = ConversationState(request.current_state)
-
-        # If process_message is CPU/blocking, ensure it's run in a thread (to avoid blocking event loop).
-        # Example: result = await asyncio.to_thread(orchestrator.process_message, ...)
+        # State is now managed internally by orchestrator
+        # The current_state parameter is deprecated and ignored
         result = orchestrator.process_message(
             conversation_id=request.conversation_id,
-            user_message=request.user_message,
-            current_state=state
+            user_message=request.user_message
         )
 
         return ChatResponse(
@@ -167,8 +163,6 @@ async def process_chat(request: ChatRequest, req: Request):
             suggestions=result.suggestions
         )
 
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid state: {str(e)}")
     except Exception as e:
         logger.exception("Error processing chat: %s", e)
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")

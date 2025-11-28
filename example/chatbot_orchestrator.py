@@ -31,24 +31,29 @@ class ChatbotOrchestrator:
     def process_message(
         self,
         conversation_id: str,
-        user_message: str,
-        current_state: ConversationState
+        user_message: str
     ) -> ValidatedChatbotResponse:
         """
         Process incoming user message with intelligent sentiment + template-aware decisions.
 
         Flow:
         1. Store message in conversation
-        2. Analyze sentiment (multi-dimensional)
-        3. Determine response mode (template, LLM, or both)
-        4. Extract structured data if needed for current state
-        5. Compose final response
-        6. Update state based on intent/context
+        2. Get current state from conversation context
+        3. Analyze sentiment (multi-dimensional)
+        4. Determine response mode (template, LLM, or both)
+        5. Extract structured data if needed for current state
+        6. Compose final response
+        7. Update state based on intent/context
+
+        State is managed internally - NOT provided by client.
         """
 
         # 1. Store user message and get conversation context
         context = self.conversation_manager.add_user_message(conversation_id, user_message)
         history = self.conversation_manager.get_dspy_history(conversation_id)
+
+        # 2. Get current state from stored conversation context
+        current_state = context.state
 
         # 2a. Classify user intent
         intent = self._classify_intent(history, user_message)

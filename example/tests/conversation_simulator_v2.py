@@ -385,8 +385,12 @@ class Phase2ConversationSimulator:
         self.base_url = base_url
         self.client = httpx.Client(base_url=base_url, timeout=120.0)
 
-    def call_chat_api(self, conv_id: str, message: str, current_state: str = "greeting") -> Dict[str, Any]:
-        """Call /chat endpoint."""
+    def call_chat_api(self, conv_id: str, message: str) -> Dict[str, Any]:
+        """Call /chat endpoint.
+
+        State is now managed internally by the chatbot system.
+        No need to track or provide current_state parameter.
+        """
         start = time.time()
 
         try:
@@ -394,8 +398,8 @@ class Phase2ConversationSimulator:
                 API_CHAT_ENDPOINT,
                 json={
                     "conversation_id": conv_id,
-                    "user_message": message,
-                    "current_state": current_state
+                    "user_message": message
+                    # No current_state - managed by server
                 }
             )
             latency = time.time() - start
@@ -408,7 +412,7 @@ class Phase2ConversationSimulator:
                     "response": data.get("message", ""),
                     "sentiment": data.get("sentiment"),
                     "extracted_data": data.get("extracted_data"),
-                    "state": data.get("state", "unknown"),
+                    # State not returned by API - managed internally
                     "scratchpad_completeness": data.get("scratchpad_completeness", 0.0),
                     "should_confirm": data.get("should_confirm", False)
                 }
@@ -654,9 +658,9 @@ class Phase2ConversationSimulator:
 ║    Updates: {metrics.scratchpad_updates}
 ║    Progression: {' → '.join(f'{c:.0f}%' for c in metrics.completeness_progression[-5:]) if metrics.completeness_progression else 'N/A'}
 ║
-║ 🎯 STATE MACHINE:
-║    Current State: {result.get('state', 'unknown')}
-║    Transition Path: {' → '.join(metrics.state_transitions[-5:]) if metrics.state_transitions else 'N/A'}
+║ 🎯 CONVERSATION FLOW:
+║    Progress: {' → '.join(metrics.state_transitions[-5:]) if metrics.state_transitions else 'N/A'}
+║    (State managed internally by server)
 ║
 ║ ✅ ACTIONS TAKEN:
 ║    Edits: {metrics.edit_actions}  |  Cancels: {metrics.cancel_actions}  |  Confirms: {metrics.confirm_actions}
@@ -686,7 +690,7 @@ class Phase2ConversationSimulator:
         print(f"{'='*90}\n")
 
         in_confirmation_flow = False
-        current_state = "greeting"  # Track current state
+        # State is now managed by the server - no tracking needed
 
         for turn_idx, turn in enumerate(scenario.turns):
             message = self.get_message_from_turn(turn)
@@ -715,7 +719,6 @@ class Phase2ConversationSimulator:
 
                 if result["success"]:
                     metrics.add_turn(result["latency"], result.get("state", "confirmation"))
-                    current_state = result.get("state", "confirmation")
 
                     # Track actions
                     if action == "confirm":
@@ -727,7 +730,6 @@ class Phase2ConversationSimulator:
                     elif action == "cancel":
                         metrics.cancel_actions += 1
                         in_confirmation_flow = False
-                        current_state = "greeting"  # Reset state after cancel
 
                     print(f"🤖 Chatbot [Confirmation API]: {result['message']}")
                 else:
@@ -735,16 +737,15 @@ class Phase2ConversationSimulator:
                     continue
 
             else:
-                # Use regular chat API
-                result = self.call_chat_api(conv_id, message, current_state)
+                # Use regular chat API (no state parameter)
+                result = self.call_chat_api(conv_id, message)
 
                 if not result["success"]:
                     print(f"   ❌ Chat API Error: {result.get('error')}")
                     continue
 
-                # Update metrics
-                metrics.add_turn(result["latency"], result.get("state", "unknown"))
-                current_state = result.get("state", "unknown")  # Update current state from response
+                # Update metrics (state no longer returned)
+                metrics.add_turn(result["latency"], "in_progress")
 
                 # Track scratchpad
                 completeness = result.get("scratchpad_completeness", 0.0)
