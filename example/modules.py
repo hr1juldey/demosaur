@@ -8,6 +8,7 @@ from signatures import (
     SentimentAnalysisSignature,
     NameExtractionSignature,
     VehicleDetailsExtractionSignature,
+    PhoneExtractionSignature,
     DateParsingSignature,
     ResponseGenerationSignature,
     IntentClassificationSignature,
@@ -75,6 +76,22 @@ class VehicleDetailsExtractor(dspy.Module):
 
     def forward(self, conversation_history=None, user_message: str = ""):
         """Extract vehicle details with conversation context."""
+        conversation_history = get_default_history(conversation_history)
+        return self.predictor(
+            conversation_history=conversation_history,
+            user_message=user_message
+        )
+
+
+class PhoneExtractor(dspy.Module):
+    """Extract phone number from unstructured text."""
+
+    def __init__(self):
+        super().__init__()
+        self.predictor = dspy.ChainOfThought(PhoneExtractionSignature)
+
+    def forward(self, conversation_history=None, user_message: str = ""):
+        """Extract phone number with conversation context."""
         conversation_history = get_default_history(conversation_history)
         return self.predictor(
             conversation_history=conversation_history,

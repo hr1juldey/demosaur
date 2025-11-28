@@ -8,9 +8,9 @@ import re
 import logging
 from typing import Optional
 from datetime import datetime
-from modules import NameExtractor, VehicleDetailsExtractor, DateParser
+from modules import NameExtractor, VehicleDetailsExtractor, PhoneExtractor, DateParser
 from dspy_config import ensure_configured
-from models import ValidatedName, ValidatedVehicleDetails, ValidatedDate, ExtractionMetadata
+from models import ValidatedName, ValidatedVehicleDetails, ValidatedPhone, ValidatedDate, ExtractionMetadata
 
 # Configure logging for diagnostic purposes
 logging.basicConfig(
@@ -27,6 +27,7 @@ class DataExtractionService:
         ensure_configured()
         self.name_extractor = NameExtractor()
         self.vehicle_extractor = VehicleDetailsExtractor()
+        self.phone_extractor = PhoneExtractor()
         self.date_parser = DateParser()
 
     def extract_name(
@@ -132,6 +133,53 @@ class DataExtractionService:
                 brand=brand,
                 model="Unknown",
                 number_plate=plate,
+                metadata=ExtractionMetadata(
+                    confidence=0.8,
+                    extraction_method="rule_based",
+                    extraction_source=user_message
+                )
+            )
+
+        return None
+
+    def extract_phone(
+        self,
+        user_message: str,
+        conversation_history: dspy.History = None
+    ) -> Optional[ValidatedPhone]:
+        """Extract phone number: DSPy first, regex fallback only if needed."""
+
+        try:
+            # Primary: Try DSPy extraction
+            history = conversation_history or dspy.History(messages=[])
+            result = self.phone_extractor(
+                conversation_history=history,
+                user_message=user_message
+            )
+
+            phone_number = str(result.phone_number).strip() if hasattr(result, 'phone_number') else ""
+
+            if phone_number and phone_number.lower() not in ["none", "n/a", "unknown"]:
+                return ValidatedPhone(
+                    phone_number=phone_number,
+                    confidence=0.9,
+                    metadata=ExtractionMetadata(
+                        confidence=0.9,
+                        extraction_method="dspy",
+                        extraction_source=user_message
+                    )
+                )
+        except Exception as e:
+            logger.error(f"DSPy phone extraction failed: {type(e).__name__}: {e}")
+            pass
+
+        # Fallback: Simple regex for 10-digit Indian phone numbers
+        phone_match = re.search(r'\b([6-9]\d{9})\b', user_message)
+        if phone_match:
+            phone_number = phone_match.group(1)
+            return ValidatedPhone(
+                phone_number=phone_number,
+                confidence=0.8,
                 metadata=ExtractionMetadata(
                     confidence=0.8,
                     extraction_method="rule_based",

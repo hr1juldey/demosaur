@@ -79,12 +79,19 @@ class TemplateManager:
         }
         intent = intent_mapping.get(intent_lower, "general_inquiry")
 
+        # RULE 0: State-aware decision - during data collection, ignore intent, ask for data
+        data_collection_states = ["name_collection", "vehicle_details", "date_selection", "vehicle_type", "tier_selection", "slot_selection", "address_collection"]
+        if current_state in data_collection_states:
+            # During data collection, use LLM to guide user, don't show menus
+            return (ResponseMode.LLM_ONLY, "")
+
         # RULE 1: Intent-Based Decision (Intent OVERRIDES sentiment)
         if intent == "pricing":
             return (ResponseMode.TEMPLATE_ONLY, "pricing")
         elif intent == "catalog":
             return (ResponseMode.TEMPLATE_ONLY, "catalog")
         elif intent == "booking":
+            # Only show plans if not in data collection state (handled above)
             return (ResponseMode.TEMPLATE_ONLY, "plans")
         elif intent == "complaint":
             return (ResponseMode.LLM_ONLY, "")

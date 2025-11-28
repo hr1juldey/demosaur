@@ -412,9 +412,11 @@ class Phase2ConversationSimulator:
                     "response": data.get("message", ""),
                     "sentiment": data.get("sentiment"),
                     "extracted_data": data.get("extracted_data"),
-                    # State not returned by API - managed internally
+                    "state": data.get("state", "in_progress"),  # Read state from API
                     "scratchpad_completeness": data.get("scratchpad_completeness", 0.0),
-                    "should_confirm": data.get("should_confirm", False)
+                    "should_confirm": data.get("should_confirm", False),
+                    "data_extracted": data.get("data_extracted", False),
+                    "typo_corrections": data.get("typo_corrections")
                 }
             else:
                 return {
@@ -744,8 +746,9 @@ class Phase2ConversationSimulator:
                     print(f"   ❌ Chat API Error: {result.get('error')}")
                     continue
 
-                # Update metrics (state no longer returned)
-                metrics.add_turn(result["latency"], "in_progress")
+                # Update metrics with state from API response
+                current_state = result.get("state", "in_progress")
+                metrics.add_turn(result["latency"], current_state)
 
                 # Track scratchpad
                 completeness = result.get("scratchpad_completeness", 0.0)

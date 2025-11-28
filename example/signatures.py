@@ -75,7 +75,25 @@ class VehicleDetailsExtractionSignature(dspy.Signature):
         desc="Vehicle model name (e.g., Corolla, Civic, X5)"
     )
     number_plate = dspy.OutputField(
-        desc="License plate number, normalized format"
+        desc="License plate number in alphanumeric format (NOT phone numbers). Example: MH12AB1234, DL4CAF4321. If unsure, return 'Unknown'."
+    )
+
+
+class PhoneExtractionSignature(dspy.Signature):
+    """Extract phone number from unstructured input."""
+
+    conversation_history: dspy.History = dspy.InputField(
+        desc="Full conversation history for context"
+    )
+    user_message = dspy.InputField(
+        desc="User's message that may contain a phone number"
+    )
+
+    phone_number = dspy.OutputField(
+        desc="10-digit Indian phone number (e.g., 9876543210, 8888777766). Return 'Unknown' if not found or if the number looks like a license plate."
+    )
+    confidence = dspy.OutputField(
+        desc="Confidence score (0.0-1.0) for the extraction"
     )
 
 

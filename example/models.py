@@ -271,6 +271,44 @@ class ValidatedVehicleDetails(BaseModel):
         return normalized
 
 
+class ValidatedPhone(BaseModel):
+    """Validated phone number with comprehensive validation."""
+    model_config = ConfigDict(extra='forbid')
+
+    phone_number: str = Field(
+        ...,
+        min_length=10,
+        max_length=15,
+        description="Phone number (10-digit Indian format preferred)"
+    )
+    confidence: float = Field(ge=0.0, le=1.0, default=1.0, description="Confidence in extraction")
+    metadata: ExtractionMetadata = Field(description="Extraction metadata")
+
+    @field_validator('phone_number')
+    @classmethod
+    def validate_and_normalize_phone(cls, v: str) -> str:
+        """Validate and normalize phone number."""
+        if not v or not v.strip():
+            raise ValueError("Phone number cannot be empty")
+
+        # Remove common separators
+        cleaned = v.replace(' ', '').replace('-', '').replace('(', '').replace(')', '').replace('+91', '').strip()
+
+        # Check for "Unknown" or similar placeholders
+        if cleaned.lower() in ['none', 'unknown', 'n/a', '']:
+            raise ValueError("Invalid phone number placeholder")
+
+        # Indian phone number: 10 digits starting with 6-9
+        if len(cleaned) == 10 and cleaned.isdigit() and cleaned[0] in '6789':
+            return cleaned
+
+        # International format (more permissive)
+        if len(cleaned) >= 10 and len(cleaned) <= 15 and cleaned.isdigit():
+            return cleaned
+
+        raise ValueError(f"Invalid phone number format: {v}")
+
+
 class ValidatedDate(BaseModel):
     """Validated date with comprehensive validation and normalization."""
     model_config = ConfigDict(extra='forbid')
@@ -844,6 +882,11 @@ class ValidatedChatbotResponse(BaseModel):
     suggestions: Optional[Dict[str, Any]] = Field(None, description="Suggestions for handling conversation")
     processing_time_ms: float = Field(ge=0.0, description="Time taken to process the response in milliseconds")
     confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the response")
+    should_confirm: bool = Field(default=False, description="Whether confirmation screen should be shown")
+    scratchpad_completeness: float = Field(default=0.0, ge=0.0, le=100.0, description="Data collection completeness percentage (0-100)")
+    state: str = Field(default="greeting", description="Current conversation state")
+    data_extracted: bool = Field(default=False, description="Whether new data was extracted in this turn")
+    typo_corrections: Optional[Dict[str, str]] = Field(default=None, description="Typo corrections suggested by chatbot")
 
     @model_validator(mode='after')
     def validate_message_length(self):

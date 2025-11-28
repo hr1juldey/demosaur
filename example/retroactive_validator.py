@@ -332,7 +332,7 @@ class ConversationValidator:
                 logger.info(f"Retroactively filled vehicle: {vehicle_data.brand} {vehicle_data.model}")
                 logger.debug(f"🔄 validate_and_complete: After update, updated_data={updated_data}")
             else:
-                logger.debug(f"🔄 validate_and_complete: vehicle_data is None/falsy, not updating")
+                logger.debug("🔄 validate_and_complete: vehicle_data is None/falsy, not updating")
 
         if "appointment_date" in missing_fields:
             date_data = self.scanner.scan_for_date(history)

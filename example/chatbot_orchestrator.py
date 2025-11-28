@@ -14,6 +14,7 @@ from template_manager import TemplateManager
 from models import ValidatedChatbotResponse, ValidatedSentimentScores, ValidatedIntent, ExtractionMetadata
 from dspy_config import ensure_configured
 from retroactive_validator import final_validation_sweep
+from booking.scratchpad import ScratchpadManager
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,45 @@ class ChatbotOrchestrator:
         self.data_extractor = DataExtractionService()
         self.response_composer = ResponseComposer()
         self.template_manager = TemplateManager()
+        # Scratchpad manager for tracking booking data collection
+        self.scratchpad_managers: Dict[str, ScratchpadManager] = {}
+
+    def _detect_typos_in_confirmation(
+        self,
+        extracted_data: Dict[str, Any],
+        user_message: str,
+        history: dspy.History
+    ) -> Optional[Dict[str, str]]:
+        """Detect typos in extracted data using DSPy TypoDetector module."""
+        from modules import TypoDetector
+
+        ensure_configured()
+        try:
+            typo_detector = TypoDetector()
+            corrections = {}
+
+            # Check each extracted field for typos
+            for field_name, value in extracted_data.items():
+                if isinstance(value, str) and len(value.strip()) > 0:
+                    result = typo_detector(
+                        input_text=value,
+                        conversation_history=history,
+                        field_name=field_name
+                    )
+                    if result and hasattr(result, 'has_typo') and result.has_typo:
+                        if hasattr(result, 'correction') and result.correction:
+                            corrections[field_name] = result.correction
+
+            return corrections if corrections else None
+        except Exception as e:
+            logger.debug(f"Typo detection failed: {e}")
+            return None
+
+    def _get_or_create_scratchpad(self, conversation_id: str) -> ScratchpadManager:
+        """Get or create scratchpad for a conversation."""
+        if conversation_id not in self.scratchpad_managers:
+            self.scratchpad_managers[conversation_id] = ScratchpadManager(conversation_id)
+        return self.scratchpad_managers[conversation_id]
 
     def process_message(
         self,
@@ -110,6 +150,11 @@ class ChatbotOrchestrator:
             template_variables=self._get_template_variables(extracted_data)
         )
 
+        # 6.5. Run typo detection ONLY in CONFIRMATION state with extracted data
+        typo_corrections = None
+        if current_state == ConversationState.CONFIRMATION and extracted_data:
+            typo_corrections = self._detect_typos_in_confirmation(extracted_data, user_message, history)
+
         # 7. Store extracted data in conversation context
         if extracted_data:
             for key, value in extracted_data.items():
@@ -157,7 +202,27 @@ class ChatbotOrchestrator:
             )
             self.conversation_manager.update_state(conversation_id, next_state, reason)
 
+        # 9. Update scratchpad AFTER state transition (use next_state, not current_state)
+        scratchpad = self._get_or_create_scratchpad(conversation_id)
+        if extracted_data:
+            for key, value in extracted_data.items():
+                # Use next_state here so scratchpad updates correctly
+                self._update_scratchpad_from_extraction(scratchpad, next_state, key, value)
+
         # 9. Create validated response
+        # Set should_confirm to True if we're in CONFIRMATION state with all required data
+        should_confirm = (
+            next_state == ConversationState.CONFIRMATION and
+            extracted_data is not None and
+            len(extracted_data) > 0
+        )
+
+        # Check if new data was extracted in this turn
+        data_extracted_this_turn = extracted_data is not None and len(extracted_data) > 0
+
+        # Get scratchpad completeness percentage
+        scratchpad_completeness = scratchpad.get_completeness()
+
         return ValidatedChatbotResponse(
             message=response["response"],
             should_proceed=True,
@@ -165,7 +230,12 @@ class ChatbotOrchestrator:
             sentiment=sentiment.to_dict() if sentiment else None,
             suggestions={},
             processing_time_ms=0,
-            confidence_score=0.85
+            confidence_score=0.85,
+            should_confirm=should_confirm,
+            scratchpad_completeness=scratchpad_completeness,
+            state=next_state.value,
+            data_extracted=data_extracted_this_turn,
+            typo_corrections=typo_corrections
         )
 
     def _extract_for_state(
@@ -174,32 +244,61 @@ class ChatbotOrchestrator:
         user_message: str,
         history: dspy.History
     ) -> Optional[Dict[str, Any]]:
-        """Extract relevant data based on current conversation state."""
+        """
+        Extract relevant data based on current conversation state.
 
-        if state == ConversationState.NAME_COLLECTION:
+        PHASE 1 BEHAVIOR: Extraction happens in ALL states (not just specific ones).
+        This allows the retroactive validator and state machine to work properly.
+        """
+        extracted = {}
+
+        # Try extracting NAME in any state (Phase 1 behavior)
+        try:
             name_data = self.data_extractor.extract_name(user_message, history)
             if name_data:
-                return {
-                    "first_name": name_data.first_name,
-                    "last_name": name_data.last_name,
-                    "full_name": name_data.full_name
-                }
+                first_name = str(name_data.first_name).strip()
+                if first_name and first_name.lower() not in ["none", "n/a", "unknown"]:
+                    extracted["first_name"] = first_name
+                    extracted["last_name"] = str(name_data.last_name).strip() if hasattr(name_data, 'last_name') else ""
+                    extracted["full_name"] = f"{first_name} {extracted['last_name']}".strip()
+        except Exception as e:
+            logger.debug(f"Name extraction failed: {e}")
 
-        elif state == ConversationState.VEHICLE_DETAILS:
+        # Try extracting PHONE in any state (Phase 1 behavior)
+        # IMPORTANT: Extract phone BEFORE vehicle to avoid confusion with plate numbers
+        try:
+            phone_data = self.data_extractor.extract_phone(user_message, history)
+            if phone_data:
+                phone_number = str(phone_data.phone_number).strip() if phone_data.phone_number else None
+                if phone_number and phone_number.lower() not in ["none", "unknown", "n/a"]:
+                    extracted["phone"] = phone_number
+        except Exception as e:
+            logger.debug(f"Phone extraction failed: {e}")
+
+        # Try extracting VEHICLE in any state (Phase 1 behavior)
+        try:
             vehicle_data = self.data_extractor.extract_vehicle_details(user_message, history)
             if vehicle_data:
-                return {
-                    "vehicle_brand": vehicle_data.brand,
-                    "vehicle_model": vehicle_data.model,
-                    "vehicle_plate": vehicle_data.number_plate
-                }
+                brand = str(vehicle_data.brand).strip() if vehicle_data.brand else None
+                if brand and brand.lower() not in ["none", "unknown"]:
+                    extracted["vehicle_brand"] = brand
+                    extracted["vehicle_model"] = str(vehicle_data.model).strip() if vehicle_data.model else "Unknown"
+                    extracted["vehicle_plate"] = str(vehicle_data.number_plate).strip() if vehicle_data.number_plate else "Unknown"
+        except Exception as e:
+            logger.debug(f"Vehicle extraction failed: {e}")
 
-        elif state == ConversationState.DATE_SELECTION:
+        # Try extracting DATE in any state (Phase 1 behavior)
+        try:
             date_data = self.data_extractor.parse_date(user_message, history)
             if date_data:
-                return {"appointment_date": date_data.date_str}
+                date_str = str(date_data.date_str).strip() if date_data.date_str else None
+                if date_str and date_str.lower() not in ["none", "unknown"]:
+                    extracted["appointment_date"] = date_str
+        except Exception as e:
+            logger.debug(f"Date extraction failed: {e}")
 
-        return None
+        # Return extracted data if any, otherwise None
+        return extracted if extracted else None
 
     def _generate_empathetic_response(
         self,
@@ -264,9 +363,20 @@ class ChatbotOrchestrator:
         if sentiment and sentiment.anger > 6.0:
             return ConversationState.SERVICE_SELECTION
 
+        # If user confirms at confirmation state, move to COMPLETED
+        if current_state == ConversationState.CONFIRMATION:
+            confirm_keywords = ["yes", "confirm", "confirmed", "correct", "proceed", "ok", "go", "book", "let's", "lets"]
+            if any(kw in user_message.lower() for kw in confirm_keywords):
+                return ConversationState.COMPLETED
+
         # If data extracted, advance state
         if extracted_data:
-            if current_state == ConversationState.NAME_COLLECTION:
+            # PHASE 1 FIX: Add missing GREETING → NAME_COLLECTION transition
+            if current_state == ConversationState.GREETING:
+                # If we extracted name data, move to NAME_COLLECTION state
+                if any(k in extracted_data for k in ["first_name", "full_name"]):
+                    return ConversationState.NAME_COLLECTION
+            elif current_state == ConversationState.NAME_COLLECTION:
                 return ConversationState.VEHICLE_DETAILS
             elif current_state == ConversationState.VEHICLE_DETAILS:
                 return ConversationState.DATE_SELECTION
@@ -301,6 +411,40 @@ class ChatbotOrchestrator:
         if not extracted_data:
             return {}
         return {k: str(v) for k, v in extracted_data.items()}
+
+    def _update_scratchpad_from_extraction(
+        self,
+        scratchpad: ScratchpadManager,
+        state: ConversationState,
+        field_name: str,
+        value: Any
+    ) -> None:
+        """Update scratchpad based on extracted data field and current state."""
+        # Map extracted fields to scratchpad sections
+        if state == ConversationState.NAME_COLLECTION:
+            section = "customer"
+            # Map field names
+            if field_name in ["first_name", "last_name", "full_name"]:
+                scratchpad.add_field(section, field_name, value, "extraction", turn=0)
+
+        elif state == ConversationState.VEHICLE_DETAILS:
+            section = "vehicle"
+            # Map vehicle fields
+            field_mapping = {
+                "vehicle_brand": "brand",
+                "vehicle_model": "model",
+                "vehicle_plate": "plate"
+            }
+            scratchpad_field = field_mapping.get(field_name, field_name)
+            scratchpad.add_field(section, scratchpad_field, value, "extraction", turn=0)
+
+        elif state == ConversationState.DATE_SELECTION:
+            section = "appointment"
+            field_mapping = {
+                "appointment_date": "date"
+            }
+            scratchpad_field = field_mapping.get(field_name, field_name)
+            scratchpad.add_field(section, scratchpad_field, value, "extraction", turn=0)
 
     def _classify_intent(self, history: dspy.History, user_message: str) -> ValidatedIntent:
         """Classify customer intent (pricing, booking, complaint, etc.)."""

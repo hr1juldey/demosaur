@@ -114,6 +114,11 @@ class ChatResponse(BaseModel):
     extracted_data: Optional[Dict[str, Any]] = None
     sentiment: Optional[Dict[str, float]] = None
     suggestions: Optional[Dict[str, Any]] = None
+    should_confirm: bool = False
+    scratchpad_completeness: float = 0.0
+    state: str = "greeting"
+    data_extracted: bool = False
+    typo_corrections: Optional[Dict[str, str]] = None
 
 
 class SentimentRequest(BaseModel):
@@ -160,7 +165,12 @@ async def process_chat(request: ChatRequest, req: Request):
             should_proceed=result.should_proceed,
             extracted_data=result.extracted_data,
             sentiment=result.sentiment,
-            suggestions=result.suggestions
+            suggestions=result.suggestions,
+            should_confirm=result.should_confirm,
+            scratchpad_completeness=result.scratchpad_completeness,
+            state=result.state,
+            data_extracted=result.data_extracted,
+            typo_corrections=result.typo_corrections
         )
 
     except Exception as e:
