@@ -82,3 +82,49 @@ def messages_to_dspy_history(conversation_context: Any, max_messages: Optional[i
         [{"role": msg.role, "content": msg.content} for msg in conversation_context.messages],
         max_messages=max_messages
     )
+
+
+def filter_dspy_history_to_user_only(history: dspy.History) -> dspy.History:
+    """
+    Filter conversation history to include ONLY user messages.
+
+    This prevents LLM extractors from being confused by chatbot's own responses.
+    When extracting user data (name, vehicle, date, etc.), the LLM should see
+    only what the USER said, not what the chatbot responded with.
+
+    Example:
+        - Original: User says "I have Honda City", Chatbot says "Thanks! Now tell me your date"
+        - User-only history: User says "I have Honda City"  (chatbot response removed)
+        - Result: LLM extracts vehicle cleanly without "date" polluting name extraction
+
+    Args:
+        history: dspy.History with both user and assistant messages
+
+    Returns:
+        dspy.History with only user messages
+    """
+    if not history or not hasattr(history, 'messages'):
+        return empty_dspy_history()
+
+    user_only_messages = [
+        msg for msg in history.messages
+        if isinstance(msg, dict) and msg.get('role') == 'user'
+    ]
+
+    return dspy.History(messages=user_only_messages)
+
+
+def get_user_and_assistant_history(history: dspy.History) -> dspy.History:
+    """
+    Get conversation history with both user and assistant messages.
+
+    Use this when you need full conversation context (e.g., sentiment analysis, intent classification).
+    This is the default behavior.
+
+    Args:
+        history: dspy.History object
+
+    Returns:
+        Same dspy.History (no filtering)
+    """
+    return history if history is not None else empty_dspy_history()

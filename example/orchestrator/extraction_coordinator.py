@@ -68,19 +68,29 @@ class ExtractionCoordinator:
         PHASE 1 BEHAVIOR: Extraction happens in ALL states (not just specific ones).
         This allows the retroactive validator and state machine to work properly.
 
+        IMPORTANT: This method filters history to USER-ONLY messages to prevent
+        the LLM from being confused by chatbot's own responses. This prevents
+        issues like extracting "now/today/finished" (chatbot's words) as user data.
+
         Args:
             state: Current conversation state
             user_message: User's raw message
-            history: Conversation history
+            history: Conversation history (will be filtered to user messages only)
 
         Returns:
             Dictionary of extracted data or None
         """
+        # CRITICAL FIX: Filter history to USER-ONLY messages
+        # Prevents LLM from reading chatbot's own responses during data extraction
+        # Example: If chatbot says "you are finished", LLM won't extract "finished" as user intent
+        from history_utils import filter_dspy_history_to_user_only
+        user_only_history = filter_dspy_history_to_user_only(history)
+
         extracted = {}
 
         # Try extracting NAME in any state (Phase 1 behavior)
         try:
-            name_data = self.data_extractor.extract_name(user_message, history)
+            name_data = self.data_extractor.extract_name(user_message, user_only_history)
             if name_data:
                 # SANITIZATION: Strip quotes and clean DSPy output
                 # Fixes: DSPy sometimes returns '""' (quoted empty string) which fails Pydantic validation
@@ -106,7 +116,7 @@ class ExtractionCoordinator:
         # Try extracting PHONE in any state (Phase 1 behavior)
         # IMPORTANT: Extract phone BEFORE vehicle to avoid confusion with plate numbers
         try:
-            phone_data = self.data_extractor.extract_phone(user_message, history)
+            phone_data = self.data_extractor.extract_phone(user_message, user_only_history)
             if phone_data:
                 phone_number = str(phone_data.phone_number).strip() if phone_data.phone_number else None
                 if phone_number and phone_number.lower() not in ["none", "unknown", "n/a"]:
@@ -116,7 +126,7 @@ class ExtractionCoordinator:
 
         # Try extracting VEHICLE in any state (Phase 1 behavior)
         try:
-            vehicle_data = self.data_extractor.extract_vehicle_details(user_message, history)
+            vehicle_data = self.data_extractor.extract_vehicle_details(user_message, user_only_history)
             if vehicle_data:
                 brand = str(vehicle_data.brand).strip() if vehicle_data.brand else None
                 if brand and brand.lower() not in ["none", "unknown"]:
@@ -128,7 +138,7 @@ class ExtractionCoordinator:
 
         # Try extracting DATE in any state (Phase 1 behavior)
         try:
-            date_data = self.data_extractor.parse_date(user_message, history)
+            date_data = self.data_extractor.parse_date(user_message, user_only_history)
             if date_data:
                 date_str = str(date_data.date_str).strip() if date_data.date_str else None
                 if date_str and date_str.lower() not in ["none", "unknown"]:

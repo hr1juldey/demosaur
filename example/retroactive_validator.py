@@ -14,6 +14,7 @@ from config import Config
 from models import ValidatedName, ValidatedVehicleDetails, ValidatedDate, ExtractionMetadata
 from modules import NameExtractor, VehicleDetailsExtractor, DateParser
 from dspy_config import ensure_configured
+from history_utils import filter_dspy_history_to_user_only
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,8 @@ class RetroactiveScanner:
         Retroactively scan history for name mentions.
 
         Returns the most recent name mentioned in conversation.
+
+        CRITICAL FIX: Uses user-only history to prevent LLM from reading chatbot's own responses.
         """
         if not history or not hasattr(history, 'messages'):
             logger.debug("🔍 scan_for_name: No history or no messages attribute")
@@ -108,10 +111,14 @@ class RetroactiveScanner:
         try:
             from config import config
 
+            # CRITICAL FIX: Filter to user-only history
+            # Prevents LLM from being confused by chatbot's own responses
+            user_only_history = filter_dspy_history_to_user_only(history)
+
             # PERFORMANCE FIX: Only scan recent messages to prevent timeout
             # Use centralized config to control scan limit
             scan_limit = config.RETROACTIVE_SCAN_LIMIT
-            recent_messages = history.messages[-scan_limit:] if len(history.messages) > scan_limit else history.messages
+            recent_messages = user_only_history.messages[-scan_limit:] if len(user_only_history.messages) > scan_limit else user_only_history.messages
 
             # Get user messages from recent history only
             user_messages = [
@@ -130,7 +137,7 @@ class RetroactiveScanner:
                 try:
                     logger.debug(f"🔍 scan_for_name: Attempting extraction from message: {message[:50]}...")
                     result = self.name_extractor(
-                        conversation_history=history,
+                        conversation_history=user_only_history,
                         user_message=message
                     )
 
@@ -183,6 +190,8 @@ class RetroactiveScanner:
         Retroactively scan history for vehicle mentions.
 
         Searches for both brand/model AND plate number, combining them if found separately.
+
+        CRITICAL FIX: Uses user-only history to prevent LLM from reading chatbot's own responses.
         """
         if not history or not hasattr(history, 'messages'):
             logger.debug("🔍 scan_for_vehicle: No history or no messages attribute")
@@ -191,9 +200,13 @@ class RetroactiveScanner:
         try:
             from config import config
 
+            # CRITICAL FIX: Filter to user-only history
+            # Prevents LLM from being confused by chatbot's own responses
+            user_only_history = filter_dspy_history_to_user_only(history)
+
             # PERFORMANCE FIX: Only scan recent messages to prevent timeout
             scan_limit = config.RETROACTIVE_SCAN_LIMIT
-            recent_messages = history.messages[-scan_limit:] if len(history.messages) > scan_limit else history.messages
+            recent_messages = user_only_history.messages[-scan_limit:] if len(user_only_history.messages) > scan_limit else user_only_history.messages
 
             # Get user messages from recent history only
             user_messages = [
@@ -215,7 +228,7 @@ class RetroactiveScanner:
             try:
                 logger.debug("🔍 scan_for_vehicle: Calling vehicle extractor...")
                 result = self.vehicle_extractor(
-                    conversation_history=history,
+                    conversation_history=user_only_history,
                     user_message=combined_context
                 )
 
@@ -272,6 +285,8 @@ class RetroactiveScanner:
         Retroactively scan history for date mentions.
 
         Searches all user messages for date references.
+
+        CRITICAL FIX: Uses user-only history to prevent LLM from reading chatbot's own responses.
         """
         if not history or not hasattr(history, 'messages'):
             logger.debug("🔍 scan_for_date: No history or no messages attribute")
@@ -280,9 +295,13 @@ class RetroactiveScanner:
         try:
             from config import config
 
+            # CRITICAL FIX: Filter to user-only history
+            # Prevents LLM from being confused by chatbot's own responses
+            user_only_history = filter_dspy_history_to_user_only(history)
+
             # PERFORMANCE FIX: Only scan recent messages to prevent timeout
             scan_limit = config.RETROACTIVE_SCAN_LIMIT
-            recent_messages = history.messages[-scan_limit:] if len(history.messages) > scan_limit else history.messages
+            recent_messages = user_only_history.messages[-scan_limit:] if len(user_only_history.messages) > scan_limit else user_only_history.messages
 
             # Get user messages from recent history only
             user_messages = [
@@ -302,7 +321,7 @@ class RetroactiveScanner:
                     logger.debug(f"🔍 scan_for_date: Attempting extraction from message {idx}: {message[:50]}...")
                     result = self.date_parser(
                         user_message=message,
-                        conversation_history=history
+                        conversation_history=user_only_history
                     )
 
                     logger.debug(f"🔍 scan_for_date: Extraction result - date_str={result.date_str}")
