@@ -45,8 +45,10 @@ class DataExtractionService:
                 user_message=user_message
             )
 
-            first_name = str(result.first_name).strip()
-            last_name = str(result.last_name).strip() if hasattr(result, 'last_name') else ""
+            # SANITIZATION: Strip quotes and clean DSPy output
+            # Fixes: DSPy sometimes returns '""' (quoted empty string) which fails Pydantic validation
+            first_name = str(result.first_name).strip().strip('"\'')
+            last_name = str(result.last_name).strip().strip('"\'') if hasattr(result, 'last_name') else ""
 
             # Only validate essential data, not everything
             if first_name and first_name.lower() not in ["none", "n/a", "unknown"]:

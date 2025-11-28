@@ -10,6 +10,7 @@ Not limited to vehicle details - works for ANY missing required data.
 import dspy
 import logging
 from typing import Dict, Any, Optional, List
+from config import Config
 from models import ValidatedName, ValidatedVehicleDetails, ValidatedDate, ExtractionMetadata
 from modules import NameExtractor, VehicleDetailsExtractor, DateParser
 from dspy_config import ensure_configured
@@ -135,13 +136,21 @@ class RetroactiveScanner:
 
                     logger.debug(f"🔍 scan_for_name: Extraction result - first_name={result.first_name}, last_name={getattr(result, 'last_name', 'N/A')}")
 
-                    first_name = str(result.first_name).strip()
-                    last_name = str(result.last_name).strip() if hasattr(result, 'last_name') else ""
+                    # SANITIZATION: Strip quotes and clean DSPy output
+                    # Fixes: DSPy sometimes returns '""' (quoted empty string) which fails Pydantic validation
+                    first_name = str(result.first_name).strip().strip('"\'')
+                    last_name = str(result.last_name).strip().strip('"\'') if hasattr(result, 'last_name') else ""
 
                     # VALIDATION: Reject if extracted name is actually a vehicle brand
                     # Fixes ISSUE_NAME_VEHICLE_CONFUSION
                     if self._is_vehicle_brand(first_name) or self._is_vehicle_brand(last_name):
                         logger.warning(f"❌ Retroactive scan rejected: '{first_name} {last_name}' matches vehicle brand")
+                        continue  # Skip to next message
+
+                    # VALIDATION: Reject if extracted name is a greeting stopword
+                    # Fixes: Prevent "Haan" (Hindi yes), "Hello", "Hi" etc. from being extracted as first_name
+                    if first_name and first_name.lower() in Config.GREETING_STOPWORDS:
+                        logger.warning(f"❌ Retroactive scan rejected: '{first_name}' is a greeting stopword")
                         continue  # Skip to next message
 
                     if first_name and first_name.lower() not in ["none", "n/a", "unknown"]:
@@ -361,36 +370,50 @@ class ConversationValidator:
         # Retroactively scan for missing data
         updated_data = extracted_data.copy()
 
+        # OPTIMIZATION: Skip retroactive scan if data already extracted in current turn
+        # Only scan history if it's truly missing (prevents redundant DSPy calls)
         if "first_name" in missing_fields or "last_name" in missing_fields or "full_name" in missing_fields:
-            name_data = self.scanner.scan_for_name(history)
-            if name_data:
-                updated_data.update({
-                    "first_name": name_data.first_name,
-                    "last_name": name_data.last_name,
-                    "full_name": name_data.full_name
-                })
-                logger.info(f"Retroactively filled name: {name_data.full_name}")
+            # Skip scan if we already have name data in current extraction
+            if not any(k in extracted_data for k in ["first_name", "last_name", "full_name"]):
+                name_data = self.scanner.scan_for_name(history)
+                if name_data:
+                    updated_data.update({
+                        "first_name": name_data.first_name,
+                        "last_name": name_data.last_name,
+                        "full_name": name_data.full_name
+                    })
+                    logger.info(f"Retroactively filled name: {name_data.full_name}")
+            else:
+                logger.debug("🔄 validate_and_complete: Name already in extracted_data, skipping retroactive scan")
 
         if any(field in missing_fields for field in ["vehicle_brand", "vehicle_model", "vehicle_plate"]):
-            vehicle_data = self.scanner.scan_for_vehicle_details(history)
-            logger.debug(f"🔄 validate_and_complete: vehicle_data result = {vehicle_data}")
-            if vehicle_data:
-                logger.debug(f"🔄 validate_and_complete: Updating vehicle data: brand={vehicle_data.brand}, model={vehicle_data.model}, plate={vehicle_data.number_plate}")
-                updated_data.update({
-                    "vehicle_brand": vehicle_data.brand,
-                    "vehicle_model": vehicle_data.model,
-                    "vehicle_plate": vehicle_data.number_plate
-                })
-                logger.info(f"Retroactively filled vehicle: {vehicle_data.brand} {vehicle_data.model}")
-                logger.debug(f"🔄 validate_and_complete: After update, updated_data={updated_data}")
+            # Skip scan if we already have vehicle data in current extraction
+            if not any(k in extracted_data for k in ["vehicle_brand", "vehicle_model", "vehicle_plate"]):
+                vehicle_data = self.scanner.scan_for_vehicle_details(history)
+                logger.debug(f"🔄 validate_and_complete: vehicle_data result = {vehicle_data}")
+                if vehicle_data:
+                    logger.debug(f"🔄 validate_and_complete: Updating vehicle data: brand={vehicle_data.brand}, model={vehicle_data.model}, plate={vehicle_data.number_plate}")
+                    updated_data.update({
+                        "vehicle_brand": vehicle_data.brand,
+                        "vehicle_model": vehicle_data.model,
+                        "vehicle_plate": vehicle_data.number_plate
+                    })
+                    logger.info(f"Retroactively filled vehicle: {vehicle_data.brand} {vehicle_data.model}")
+                    logger.debug(f"🔄 validate_and_complete: After update, updated_data={updated_data}")
+                else:
+                    logger.debug("🔄 validate_and_complete: vehicle_data is None/falsy, not updating")
             else:
-                logger.debug("🔄 validate_and_complete: vehicle_data is None/falsy, not updating")
+                logger.debug("🔄 validate_and_complete: Vehicle data already in extracted_data, skipping retroactive scan")
 
         if "appointment_date" in missing_fields:
-            date_data = self.scanner.scan_for_date(history)
-            if date_data:
-                updated_data["appointment_date"] = date_data.date_str
-                logger.info(f"Retroactively filled date: {date_data.date_str}")
+            # Skip scan if we already have date in current extraction
+            if "appointment_date" not in extracted_data:
+                date_data = self.scanner.scan_for_date(history)
+                if date_data:
+                    updated_data["appointment_date"] = date_data.date_str
+                    logger.info(f"Retroactively filled date: {date_data.date_str}")
+            else:
+                logger.debug("🔄 validate_and_complete: appointment_date already in extracted_data, skipping retroactive scan")
 
         return updated_data
 

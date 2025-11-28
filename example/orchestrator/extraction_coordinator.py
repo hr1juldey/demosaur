@@ -7,7 +7,7 @@ Reason to change: Extraction coordination logic changes.
 import dspy
 import logging
 from typing import Dict, Any, Optional
-from config import ConversationState
+from config import ConversationState, Config
 from data_extractor import DataExtractionService
 from models import ValidatedIntent, ExtractionMetadata
 from dspy_config import ensure_configured
@@ -82,13 +82,19 @@ class ExtractionCoordinator:
         try:
             name_data = self.data_extractor.extract_name(user_message, history)
             if name_data:
-                first_name = str(name_data.first_name).strip()
-                last_name = str(name_data.last_name).strip() if hasattr(name_data, 'last_name') else ""
+                # SANITIZATION: Strip quotes and clean DSPy output
+                # Fixes: DSPy sometimes returns '""' (quoted empty string) which fails Pydantic validation
+                first_name = str(name_data.first_name).strip().strip('"\'')
+                last_name = str(name_data.last_name).strip().strip('"\'') if hasattr(name_data, 'last_name') else ""
 
                 # VALIDATION: Reject if extracted name is actually a vehicle brand
                 # Fixes ISSUE_NAME_VEHICLE_CONFUSION (e.g., "Mahindra Scorpio" extracted as name)
                 if self._is_vehicle_brand(first_name) or self._is_vehicle_brand(last_name):
                     logger.warning(f"❌ Rejected name extraction: '{first_name} {last_name}' matches vehicle brand")
+                # VALIDATION: Reject if extracted name is a greeting stopword
+                # Fixes: Prevent "Haan" (Hindi yes), "Hello", "Hi" etc. from being extracted as first_name
+                elif first_name and first_name.lower() in Config.GREETING_STOPWORDS:
+                    logger.warning(f"❌ Rejected name extraction: '{first_name}' is a greeting stopword")
                 elif first_name and first_name.lower() not in ["none", "n/a", "unknown"]:
                     extracted["first_name"] = first_name
                     extracted["last_name"] = last_name

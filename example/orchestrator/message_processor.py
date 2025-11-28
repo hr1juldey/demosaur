@@ -206,10 +206,18 @@ class MessageProcessor:
                 )
 
         # 10. Create validated response
+        # Confirmation should only happen when ALL required fields are present
+        # CONFIRMATION state requires: first_name, vehicle_brand, vehicle_model, vehicle_plate, appointment_date
+        from retroactive_validator import DataRequirements
+        required_fields = set(DataRequirements.REQUIREMENTS.get(ConversationState.CONFIRMATION.value, []))
+        extracted_fields = set(extracted_data.keys()) if extracted_data else set()
+
+        # Check if ALL required fields are present in extracted data (from current turn + retroactive scans)
+        has_all_required = required_fields.issubset(extracted_fields)
+
         should_confirm = (
             next_state == ConversationState.CONFIRMATION and
-            extracted_data is not None and
-            len(extracted_data) > 0
+            has_all_required
         )
 
         data_extracted_this_turn = extracted_data is not None and len(extracted_data) > 0
