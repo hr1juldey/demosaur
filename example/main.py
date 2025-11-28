@@ -9,8 +9,11 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
 from config import ConversationState
-from chatbot_orchestrator import ChatbotOrchestrator
+from orchestrator.message_processor import MessageProcessor
 from dspy_config import dspy_configurator
+
+# Backward compatibility: ChatbotOrchestrator is now MessageProcessor
+ChatbotOrchestrator = MessageProcessor
 
 # Configure logging to show application-level logs (not just ASGI traces)
 logging_config = {
@@ -29,7 +32,7 @@ logging_config = {
         },
     },
     'root': {
-        'level': 'DEBUG',
+        'level': 'INFO',
         'handlers': ['default'],
     },
 }
@@ -210,16 +213,19 @@ async def extract_data(request: DataExtractionRequest, req: Request):
     try:
         orchestrator = get_orchestrator(req)
 
+        # Access data extractor through extraction_coordinator
+        data_extractor = orchestrator.extraction_coordinator.data_extractor
+
         if request.extraction_type == "name":
-            result = orchestrator.data_extractor.extract_name(request.user_message)
+            result = data_extractor.extract_name(request.user_message)
             return {"extracted": result.__dict__ if result else None}
 
         elif request.extraction_type == "vehicle":
-            result = orchestrator.data_extractor.extract_vehicle_details(request.user_message)
+            result = data_extractor.extract_vehicle_details(request.user_message)
             return {"extracted": result.__dict__ if result else None}
 
         elif request.extraction_type == "date":
-            result = orchestrator.data_extractor.parse_date(request.user_message)
+            result = data_extractor.parse_date(request.user_message)
             return {"extracted": result.__dict__ if result else None}
 
         else:
@@ -231,16 +237,23 @@ async def extract_data(request: DataExtractionRequest, req: Request):
 
 
 @app.post("/api/confirmation")
-async def handle_confirmation(
-    conversation_id: str,
-    user_input: str,
-    action: str,
-    req: Request
-):
+async def handle_confirmation(req: Request):
     """Handle user actions on confirmation screen (confirm/edit/cancel)."""
     from booking_orchestrator_bridge import BookingOrchestrationBridge
 
     try:
+        # Parse JSON body
+        body = await req.json()
+        conversation_id = body.get("conversation_id")
+        user_input = body.get("user_input")
+        action = body.get("action")
+
+        if not conversation_id or not user_input or not action:
+            raise HTTPException(
+                status_code=422,
+                detail="Missing required fields: conversation_id, user_input, action"
+            )
+
         # Initialize bridge if needed
         bridge = BookingOrchestrationBridge()
         bridge.initialize_booking(conversation_id)

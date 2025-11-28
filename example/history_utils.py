@@ -4,7 +4,8 @@ Follows https://dspy.ai/tutorials/conversation_history/
 """
 
 import dspy
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from config import config
 
 
 def empty_dspy_history() -> dspy.History:
@@ -28,17 +29,20 @@ def get_default_history(history: dspy.History = None) -> dspy.History:
     return history if history is not None else empty_dspy_history()
 
 
-def create_dspy_history(messages: List[Dict[str, str]], max_messages: int = 25) -> dspy.History:
+def create_dspy_history(messages: List[Dict[str, str]], max_messages: Optional[int] = None) -> dspy.History:
     """
-    Convert message list to dspy.History object.
+    Convert message list to dspy.History object using centralized config.
 
     Args:
         messages: List of dicts with 'role' and 'content' keys
-        max_messages: Keep only recent N messages for context window (default 25)
+        max_messages: Keep only recent N messages (defaults to config.MAX_CHAT_HISTORY)
 
     Returns:
         dspy.History object formatted for DSPy modules
     """
+    if max_messages is None:
+        max_messages = config.MAX_CHAT_HISTORY
+
     recent_messages = messages[-max_messages:] if len(messages) > max_messages else messages
 
     formatted_messages = []
@@ -57,19 +61,22 @@ def create_dspy_history(messages: List[Dict[str, str]], max_messages: int = 25) 
     return dspy.History(messages=formatted_messages)
 
 
-def messages_to_dspy_history(conversation_context: Any, max_messages: int = 25) -> dspy.History:
+def messages_to_dspy_history(conversation_context: Any, max_messages: Optional[int] = None) -> dspy.History:
     """
-    Convert ValidatedConversationContext to dspy.History.
+    Convert ValidatedConversationContext to dspy.History using centralized config.
 
     Args:
         conversation_context: Object with .messages attribute from conversation_manager
-        max_messages: Keep only recent N messages
+        max_messages: Keep only recent N messages (defaults to config.MAX_CHAT_HISTORY)
 
     Returns:
         dspy.History ready for DSPy modules
     """
     if not hasattr(conversation_context, 'messages') or not conversation_context.messages:
         return empty_dspy_history()
+
+    if max_messages is None:
+        max_messages = config.MAX_CHAT_HISTORY
 
     return create_dspy_history(
         [{"role": msg.role, "content": msg.content} for msg in conversation_context.messages],

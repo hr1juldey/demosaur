@@ -142,16 +142,40 @@ DIALOGS = {
         "Okay yaar, no problem"
     ],
 
-    # Vehicle details
-    "vehicle": [
-        "I have Honda City",
-        "It's Maruti Swift only",
-        "Vehicle is Tata Nexon",
-        "My car Hyundai Creta",
-        "BMW X5 hai mere pass",
+    # Vehicle brands and models (will be combined with plates)
+    "vehicle_brands": [
+        "Honda City",
+        "Maruti Swift",
+        "Tata Nexon",
+        "Hyundai Creta",
+        "BMW X5",
         "Toyota Innova",
         "Mahindra Scorpio",
-        "Kia Seltos model"
+        "Kia Seltos",
+        "Hyundai i20",
+        "Maruti Baleno",
+        "Ford EcoSport",
+        "Renault Duster"
+    ],
+
+    # License plate numbers (Indian format)
+    "plates": [
+        "MH12AB1234",
+        "DL04C5678",
+        "KA05ML9012",
+        "TN10XY3456",
+        "GJ01CD5678",
+        "MH02DE3456",
+        "UP16FG7890",
+        "KA03HI1234",
+        "HR26JK5678",
+        "DL08MN1234",
+        "PB03OP2345",
+        "RJ14QR6789",
+        "MH14ST7890",
+        "KA01UV3456",
+        "WB12WX4567",
+        "MP09YZ8901"
     ],
 
     # Service type
@@ -622,12 +646,79 @@ class Phase2ConversationSimulator:
             ]
         )
 
+    def get_vehicle_message(self) -> tuple:
+        """
+        Generate vehicle message - randomly either:
+        1. Combined (vehicle + plate together)
+        2. Sequential (vehicle first, plate will come next turn)
+
+        Returns:
+            (message, has_plate) - message and whether plate is included
+        """
+        vehicle = random.choice(DIALOGS["vehicle_brands"])
+        plate = random.choice(DIALOGS["plates"])
+
+        # 50% chance to combine, 50% chance to split
+        if random.random() < 0.5:
+            # Combined: send both together
+            templates = [
+                f"I have {vehicle}, plate {plate}",
+                f"{vehicle}, number {plate}",
+                f"My car {vehicle} with {plate}",
+                f"{vehicle} hai, plate number {plate}",
+                f"Vehicle is {vehicle}, registration {plate}"
+            ]
+            return (random.choice(templates), True)
+        else:
+            # Sequential: send vehicle only (plate comes next)
+            templates = [
+                f"I have {vehicle}",
+                f"It's {vehicle} only",
+                f"Vehicle is {vehicle}",
+                f"My car {vehicle}",
+                f"{vehicle} hai mere pass"
+            ]
+            return (random.choice(templates), False)
+
+    def get_plate_message(self) -> str:
+        """Generate standalone plate message."""
+        plate = random.choice(DIALOGS["plates"])
+        templates = [
+            f"Plate number {plate}",
+            f"Number is {plate}",
+            f"{plate}",
+            f"Registration number {plate}",
+            f"My plate {plate}",
+            f"Number plate {plate}"
+        ]
+        return random.choice(templates)
+
     def get_message_from_turn(self, turn: Dict[str, Any]) -> str:
-        """Get message from turn definition."""
+        """
+        Get message from turn definition.
+
+        Handles dynamic vehicle+plate generation with realistic human behavior:
+        - 50% chance: Combined (vehicle+plate together)
+        - 50% chance: Sequential (vehicle first, plate comes next)
+        """
         if "custom" in turn:
             return turn["custom"]
 
         dialog_key = turn.get("dialog")
+
+        # Special handling for vehicle turns - use dynamic generation
+        if dialog_key == "vehicle":
+            vehicle_msg, has_plate = self.get_vehicle_message()
+            # Store whether we need a follow-up plate message
+            self._pending_plate = not has_plate
+            return vehicle_msg
+
+        # If previous turn was vehicle without plate, send plate now
+        if hasattr(self, '_pending_plate') and self._pending_plate:
+            self._pending_plate = False
+            return self.get_plate_message()
+
+        # Standard dialog lookup
         if dialog_key and dialog_key in DIALOGS:
             return random.choice(DIALOGS[dialog_key])
 
@@ -653,7 +744,7 @@ class Phase2ConversationSimulator:
 ║ 🔍 PHASE 2 SYSTEM STATUS (Turn {turn + 1})
 ╠═══════════════════════════════════════════════════════════════════════════════════════
 ║
-║ ⏱️  Latency: {result.get('latency', 0):.3f}s  |  Avg: {metrics.total_latency / metrics.turn_number if metrics.turn_number > 0 else 0:.3f}s
+║ ⏱️  Latency: {result.get('latency', 0):.3f}s  |  Avg latency: {metrics.total_latency / metrics.turn_number if metrics.turn_number > 0 else 0:.3f}s
 ║
 ║ 📊 SCRATCHPAD:
 ║    Completeness: {result.get('scratchpad_completeness', 0):.1f}%
@@ -671,7 +762,7 @@ class Phase2ConversationSimulator:
 ║    Spelling Mistakes: {metrics.spelling_mistakes}  |  Corrections: {metrics.corrections}
 ║
 ║ 📋 CONFIRMATION:
-║    Triggered: {'YES ✅' if metrics.confirmation_triggered else 'NO ❌'}  |  Turn: {metrics.confirmation_turn if metrics.confirmation_turn >= 0 else 'N/A'}
+║    Triggered: {'YES ✅' if metrics.confirmation_triggered else 'NO ❌'}  |  Confirmation Turn: {metrics.confirmation_turn if metrics.confirmation_turn >= 0 else 'N/A'}
 ║
 ║ 📦 BOOKING:
 ║    Completed: {'YES ✅' if metrics.booking_completed else 'NO ❌'}
@@ -693,10 +784,32 @@ class Phase2ConversationSimulator:
 
         in_confirmation_flow = False
         # State is now managed by the server - no tracking needed
+        # Initialize pending plate tracking
+        self._pending_plate = False
 
         for turn_idx, turn in enumerate(scenario.turns):
             message = self.get_message_from_turn(turn)
             turn_type = turn.get("type", "unknown")
+
+            # If previous turn was vehicle without plate, send plate as a follow-up message
+            if self._pending_plate and turn_type != "vehicle":
+                # Send the plate message first
+                plate_message = self.get_plate_message()
+                print(f"\n👤 Customer [plate_followup]: {plate_message}")
+
+                # Call chat API for plate
+                plate_result = self.call_chat_api(conv_id, plate_message)
+                if plate_result["success"]:
+                    plate_state = plate_result.get("state", "in_progress")
+                    metrics.add_turn(plate_result["latency"], plate_state)
+                    print(f"🤖 Chatbot: {plate_result['response']}")
+
+                    # Display status for plate turn
+                    status = self.format_phase2_status(turn_idx, metrics, plate_result)
+                    print(status)
+
+                self._pending_plate = False
+                time.sleep(0.2)
 
             # Display customer message
             print(f"\n👤 Customer [{turn_type}]: {message}")

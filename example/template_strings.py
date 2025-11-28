@@ -3,38 +3,54 @@ Mock WhatsApp Business API Template Strings for Yawlit Car Wash.
 These are pre-approved templates with links that should be sent directly.
 """
 
-# Greeting Template - Initial Engagement
-TEMPLATE_GREETING = {
-    "name": "greeting_welcome",
-    "content": """🚗 Welcome to Yawlit Car Wash!
+# Greeting Template - Generated from config
+def _generate_greeting_template() -> dict:
+    """Generate greeting template from centralized config."""
+    from config import config
 
-We provide premium car care services:
-✨ Interior & Exterior Wash
-💎 Professional Polishing
-🔧 Expert Detailing
+    return {
+        "name": "greeting_welcome",
+        "content": f"""🚗 Welcome to {config.COMPANY_NAME}!
+
+{config.COMPANY_DESCRIPTION}
 
 Type "Hii" to get started or ask us anything!"""
-}
+    }
 
-# Catalog Template - Service Overview with Links
-TEMPLATE_CATALOG = {
-    "name": "service_catalog",
-    "content": """📋 *Our Services:*
+TEMPLATE_GREETING = _generate_greeting_template()
 
-🚗 *WASH* - Interior & Exterior
-   Professional deep clean - Basic to Premium tiers available
+# Catalog Template - Generated from config
+def _generate_catalog_template() -> dict:
+    """Generate catalog template from centralized config."""
+    from config import config
 
-💎 *POLISHING* - Shine & Protection
-   Restore your car's lustre
+    service_icons = {
+        "wash": "🚗",
+        "polishing": "💎",
+        "detailing": "🔧"
+    }
 
-🔧 *DETAILING* - Complete Care
-   Comprehensive interior & exterior treatment
+    service_lines = [
+        f"{service_icons.get(key, '✨')} *{key.upper()}* - {desc}"
+        for key, desc in config.SERVICES.items()
+    ]
+
+    service_links = [
+        f"[View {key.title()} Plans](https://yawlit.com/plans/{key})"
+        for key in config.SERVICES.keys()
+    ]
+
+    return {
+        "name": "service_catalog",
+        "content": f"""📋 *Our Services:*
+
+{chr(10).join(service_lines)}
 
 *Tap below to view plans:*
-[View Wash Plans](https://yawlit.com/plans/wash)
-[View Polish Plans](https://yawlit.com/plans/polish)
-[View Detail Plans](https://yawlit.com/plans/detail)"""
-}
+{chr(10).join(service_links)}"""
+    }
+
+TEMPLATE_CATALOG = _generate_catalog_template()
 
 # Service Plans Template - Tier Selection
 TEMPLATE_SERVICE_PLANS = {
@@ -53,19 +69,34 @@ TEMPLATE_SERVICE_PLANS = {
 [Book {service_name}](https://yawlit.com/book/{service_type})"""
 }
 
-# Vehicle Types Template
-TEMPLATE_VEHICLE_TYPES = {
-    "name": "vehicle_types",
-    "content": """*Select Your Vehicle Type:*
+# Vehicle Types Template - Generated from config
+def _generate_vehicle_types_template() -> dict:
+    """Generate vehicle types template from centralized config."""
+    from config import config
 
-🚗 Hatchback
-🚙 Sedan
-🚕 SUV
-⚡ Electric Vehicle
-👑 Luxury Car
+    vehicle_icons = {
+        "Hatchback": "🚗",
+        "Sedan": "🚙",
+        "SUV": "🚕",
+        "EV": "⚡",
+        "Luxury": "👑"
+    }
+
+    vehicle_lines = [
+        f"{vehicle_icons.get(vtype, '🚗')} {vtype}"
+        for vtype in config.VEHICLE_TYPES
+    ]
+
+    return {
+        "name": "vehicle_types",
+        "content": f"""*Select Your Vehicle Type:*
+
+{chr(10).join(vehicle_lines)}
 
 Reply with your vehicle type or type "?help" for guidance"""
-}
+    }
+
+TEMPLATE_VEHICLE_TYPES = _generate_vehicle_types_template()
 
 # Pricing Template - Direct Links
 TEMPLATE_PRICING = {

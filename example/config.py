@@ -41,6 +41,7 @@ class Config:
     # Conversation Settings
     MAX_CHAT_HISTORY = 25
     SENTIMENT_CHECK_INTERVAL = 2  # Check sentiment every N messages
+    RETROACTIVE_SCAN_LIMIT = 3  # Number of recent messages to scan in retroactive validator (prevents timeout)
     
     # Sentiment Thresholds
     SENTIMENT_THRESHOLDS: Dict[str, Dict[str, float]] = {

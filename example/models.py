@@ -836,17 +836,12 @@ class ValidatedSentimentScores(BaseModel):
         }
 
     def should_proceed(self) -> bool:
-        """Determine if conversation should proceed normally."""
-        # Define thresholds for proceeding
-        # Lower thresholds to prevent over-cautious behavior as per bug report
-        proceed_thresholds = {
-            "anger": 8.0,  # Was previously 7.0 - raising to prevent premature disengagement
-            "disgust": 8.0,  # Was previously 7.0
-            "boredom": 8.5,  # Was previously 7.0
-            "interest": 4.0   # Was previously 5.0 - lowering to encourage engagement
-        }
+        """Determine if conversation should proceed normally using centralized config."""
+        from config import config
 
-        # Don't proceed if negative emotions are extremely high
+        proceed_thresholds = config.SENTIMENT_THRESHOLDS["proceed"]
+
+        # Don't proceed if negative emotions are too high
         if (self.anger >= proceed_thresholds["anger"] or
             self.disgust >= proceed_thresholds["disgust"] or
             self.boredom >= proceed_thresholds["boredom"]):
@@ -856,12 +851,10 @@ class ValidatedSentimentScores(BaseModel):
         return self.interest >= proceed_thresholds["interest"]
 
     def should_disengage(self) -> bool:
-        """Determine if conversation should disengage."""
-        disengage_thresholds = {
-            "anger": 8.0,
-            "disgust": 8.0,
-            "boredom": 9.0
-        }
+        """Determine if conversation should disengage using centralized config."""
+        from config import config
+
+        disengage_thresholds = config.SENTIMENT_THRESHOLDS["disengage"]
         return (self.anger >= disengage_thresholds["anger"] or
                 self.disgust >= disengage_thresholds["disgust"] or
                 self.boredom >= disengage_thresholds["boredom"])

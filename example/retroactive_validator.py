@@ -65,10 +65,34 @@ class RetroactiveScanner:
 
     def __init__(self):
         ensure_configured()
-        
+
         self.name_extractor = NameExtractor()
         self.vehicle_extractor = VehicleDetailsExtractor()
         self.date_parser = DateParser()
+
+    def _is_vehicle_brand(self, text: str) -> bool:
+        """
+        Check if text matches any known vehicle brand from VehicleBrandEnum.
+
+        Prevents extracting vehicle brands as customer names in retroactive scans.
+
+        Args:
+            text: Text to check (e.g., first_name, last_name)
+
+        Returns:
+            True if text matches a vehicle brand, False otherwise
+        """
+        from models import VehicleBrandEnum
+
+        if not text or not text.strip():
+            return False
+
+        text_lower = text.lower().strip()
+
+        return any(
+            brand.value.lower() in text_lower or text_lower in brand.value.lower()
+            for brand in VehicleBrandEnum
+        )
 
     def scan_for_name(self, history: dspy.History) -> Optional[ValidatedName]:
         """
@@ -81,16 +105,23 @@ class RetroactiveScanner:
             return None
 
         try:
-            # Get all user messages from history
+            from config import config
+
+            # PERFORMANCE FIX: Only scan recent messages to prevent timeout
+            # Use centralized config to control scan limit
+            scan_limit = config.RETROACTIVE_SCAN_LIMIT
+            recent_messages = history.messages[-scan_limit:] if len(history.messages) > scan_limit else history.messages
+
+            # Get user messages from recent history only
             user_messages = [
                 msg.get('content', '')
-                for msg in history.messages
+                for msg in recent_messages
                 if msg.get('role') == 'user'
             ]
 
-            logger.debug(f"🔍 scan_for_name: Found {len(user_messages)} user messages")
+            logger.debug(f"🔍 scan_for_name: Scanning {len(user_messages)} recent user messages (limited to last {scan_limit})")
             if not user_messages:
-                logger.debug("🔍 scan_for_name: No user messages found")
+                logger.debug("🔍 scan_for_name: No user messages found in recent history")
                 return None
 
             # Try to extract name from most recent user message first
@@ -105,12 +136,20 @@ class RetroactiveScanner:
                     logger.debug(f"🔍 scan_for_name: Extraction result - first_name={result.first_name}, last_name={getattr(result, 'last_name', 'N/A')}")
 
                     first_name = str(result.first_name).strip()
+                    last_name = str(result.last_name).strip() if hasattr(result, 'last_name') else ""
+
+                    # VALIDATION: Reject if extracted name is actually a vehicle brand
+                    # Fixes ISSUE_NAME_VEHICLE_CONFUSION
+                    if self._is_vehicle_brand(first_name) or self._is_vehicle_brand(last_name):
+                        logger.warning(f"❌ Retroactive scan rejected: '{first_name} {last_name}' matches vehicle brand")
+                        continue  # Skip to next message
+
                     if first_name and first_name.lower() not in ["none", "n/a", "unknown"]:
                         logger.info(f"✅ scan_for_name: Successfully extracted '{first_name}'")
                         return ValidatedName(
                             first_name=first_name,
-                            last_name=str(result.last_name).strip() if hasattr(result, 'last_name') else "",
-                            full_name=f"{first_name} {getattr(result, 'last_name', '')}".strip(),
+                            last_name=last_name,
+                            full_name=f"{first_name} {last_name}".strip(),
                             metadata=ExtractionMetadata(
                                 confidence=0.8,
                                 extraction_method="dspy",
@@ -141,20 +180,26 @@ class RetroactiveScanner:
             return None
 
         try:
-            # Get all user messages
+            from config import config
+
+            # PERFORMANCE FIX: Only scan recent messages to prevent timeout
+            scan_limit = config.RETROACTIVE_SCAN_LIMIT
+            recent_messages = history.messages[-scan_limit:] if len(history.messages) > scan_limit else history.messages
+
+            # Get user messages from recent history only
             user_messages = [
                 msg.get('content', '')
-                for msg in history.messages
+                for msg in recent_messages
                 if msg.get('role') == 'user'
             ]
 
             if not user_messages:
-                logger.debug("🔍 scan_for_vehicle: No user messages found in history")
+                logger.debug("🔍 scan_for_vehicle: No user messages found in recent history")
                 return None
 
-            logger.debug(f"🔍 scan_for_vehicle: Found {len(user_messages)} user messages, combining last 3...")
+            logger.debug(f"🔍 scan_for_vehicle: Scanning {len(user_messages)} recent user messages (limited to last {scan_limit})")
             # Combine recent messages to create context (e.g., "I have Honda City with plate MH12AB1234")
-            combined_context = " ".join(user_messages[-3:])  # Last 3 messages
+            combined_context = " ".join(user_messages)
             logger.debug(f"🔍 scan_for_vehicle: Combined context: '{combined_context[:100]}...'")
 
             # Try extraction on combined context
@@ -224,15 +269,22 @@ class RetroactiveScanner:
             return None
 
         try:
+            from config import config
+
+            # PERFORMANCE FIX: Only scan recent messages to prevent timeout
+            scan_limit = config.RETROACTIVE_SCAN_LIMIT
+            recent_messages = history.messages[-scan_limit:] if len(history.messages) > scan_limit else history.messages
+
+            # Get user messages from recent history only
             user_messages = [
                 msg.get('content', '')
-                for msg in history.messages
+                for msg in recent_messages
                 if msg.get('role') == 'user'
             ]
 
-            logger.debug(f"🔍 scan_for_date: Found {len(user_messages)} user messages")
+            logger.debug(f"🔍 scan_for_date: Scanning {len(user_messages)} recent user messages (limited to last {scan_limit})")
             if not user_messages:
-                logger.debug("🔍 scan_for_date: No user messages found")
+                logger.debug("🔍 scan_for_date: No user messages found in recent history")
                 return None
 
             # Try most recent date-like message first
