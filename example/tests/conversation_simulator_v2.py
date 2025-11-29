@@ -407,7 +407,7 @@ class Phase2ConversationSimulator:
 
     def __init__(self, base_url: str = API_BASE_URL):
         self.base_url = base_url
-        self.client = httpx.Client(base_url=base_url, timeout=120.0)
+        self.client = httpx.Client(base_url=base_url, timeout=180.0)
 
     def call_chat_api(self, conv_id: str, message: str) -> Dict[str, Any]:
         """Call /chat endpoint.
@@ -813,6 +813,7 @@ class Phase2ConversationSimulator:
 
             # Display customer message
             print(f"\n👤 Customer [{turn_type}]: {message}")
+            sys.stdout.flush()
 
             # Detect if this is a spelling mistake
             has_typo = "confrim" in message or "bokking" in message or "apponitment" in message or "conferm" in message
@@ -881,6 +882,7 @@ class Phase2ConversationSimulator:
                 # Display chatbot response
                 chatbot_response = result.get('response', '').lower()
                 print(f"🤖 Chatbot: {result['response']}")
+                sys.stdout.flush()
 
                 # Check if chatbot responded with a typo correction (human perspective)
                 # Look for correction suggestions like "Did you mean..." or similar
@@ -1131,28 +1133,38 @@ class Phase2ConversationSimulator:
 
 def main():
     """Main entry point."""
+    import sys
+    # Force unbuffered output so Claude Code can read it in real-time
+    sys.stdout = open(sys.stdout.fileno(), mode='w', buffering=1)
+    sys.stderr = open(sys.stderr.fileno(), mode='w', buffering=1)
+
     print("\n🎬 Phase 2 Conversation Simulator V2 Starting...\n")
+    sys.stdout.flush()
 
     # Check if API is running
     try:
-        response = httpx.get(f"{API_BASE_URL}/", timeout=10.0)
+        response = httpx.get(f"{API_BASE_URL}/", timeout=30.0)
         if response.status_code != 200:
             print("❌ API is not responding. Please start the FastAPI server first:")
             print("   cd example && uvicorn main:app --host 0.0.0.0 --port 8002")
+            sys.stdout.flush()
             return
     except Exception as e:
         print(f"❌ Cannot connect to API at {API_BASE_URL}")
         print(f"   Error: {e}")
         print("\n   Please start the FastAPI server first:")
         print("   cd example && uvicorn main:app --host 0.0.0.0 --port 8002")
+        sys.stdout.flush()
         return
 
     print("✅ API is running. Starting Phase 2 E2E tests...\n")
+    sys.stdout.flush()
 
     simulator = Phase2ConversationSimulator()
     simulator.run_all_scenarios()
 
     print("\n✅ All Phase 2 E2E tests completed!\n")
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":

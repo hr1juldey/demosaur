@@ -238,7 +238,12 @@ async def extract_data(request: DataExtractionRequest, req: Request):
 
 @app.post("/api/confirmation")
 async def handle_confirmation(req: Request):
-    """Handle user actions on confirmation screen (confirm/edit/cancel)."""
+    """Handle user actions on confirmation screen (confirm/edit/cancel).
+
+    CRITICAL FIX: Uses same ConversationManager as /chat endpoint to maintain unified state.
+    This ensures that when user confirms via button, the state transitions to COMPLETED
+    and next /chat message sees COMPLETED state, not stuck at CONFIRMATION.
+    """
     from booking_orchestrator_bridge import BookingOrchestrationBridge
 
     try:
@@ -254,8 +259,14 @@ async def handle_confirmation(req: Request):
                 detail="Missing required fields: conversation_id, user_input, action"
             )
 
-        # Initialize bridge if needed
-        bridge = BookingOrchestrationBridge()
+        # Get orchestrator from app state (same instance used by /chat endpoint)
+        orchestrator = get_orchestrator(req)
+
+        # Initialize bridge with SHARED ConversationManager from orchestrator
+        # This ensures /chat and /api/confirmation both use the same state
+        bridge = BookingOrchestrationBridge(
+            conversation_manager=orchestrator.conversation_manager
+        )
         bridge.initialize_booking(conversation_id)
 
         # Process through booking flow

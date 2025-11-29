@@ -1,20 +1,26 @@
 """Bridge: Integrate Phase 2 booking flow with Phase 1 orchestrator."""
 
 from typing import Optional, Tuple
+from conversation_manager import ConversationManager
 from booking.booking_flow_integration import BookingFlowManager
 from booking.service_request import ServiceRequest
 from models import ValidatedIntent
 
 
 class BookingOrchestrationBridge:
-    """Adapter connecting chatbot orchestrator to booking flow."""
+    """Adapter connecting chatbot orchestrator to booking flow with unified state."""
 
-    def __init__(self):
+    def __init__(self, conversation_manager: Optional[ConversationManager] = None):
         self.booking_manager: Optional[BookingFlowManager] = None
+        # Use injected ConversationManager (shared with /chat endpoint) or create new
+        self.conversation_manager = conversation_manager or ConversationManager()
 
     def initialize_booking(self, conversation_id: str) -> None:
-        """Start new booking flow."""
-        self.booking_manager = BookingFlowManager(conversation_id)
+        """Start new booking flow with unified state management."""
+        self.booking_manager = BookingFlowManager(
+            conversation_id,
+            conversation_manager=self.conversation_manager
+        )
 
     def process_booking_turn(
         self,

@@ -155,48 +155,83 @@ class MessageProcessor:
                 self.conversation_manager.store_user_data(conversation_id, key, value)
 
         # 7.5. Retroactively validate and complete missing prerequisite data
+        # OPTIMIZATION: Pass merged data (stored + extracted) to avoid redundant scans
         try:
+            # Merge stored data with current extraction to get complete picture
+            context = self.conversation_manager.get_or_create(conversation_id)
+            merged_for_retroactive = {**context.user_data, **(extracted_data or {})}
+
             logger.warning(f"🔄 RETROACTIVE: Starting sweep. State={current_state.value}, Extracted={extracted_data}")
             retroactive_data = final_validation_sweep(
                 current_state=current_state.value,
-                extracted_data=extracted_data if extracted_data else {},
+                extracted_data=merged_for_retroactive,  # Pass merged data instead of just extracted_data
                 history=history
             )
             logger.warning(f"🔄 RETROACTIVE: Result={retroactive_data}")
 
             # Merge retroactively filled data with existing extracted data
+            # CRITICAL FIX: Only merge if new value is not None/Unknown
             if retroactive_data:
                 if not extracted_data:
                     extracted_data = {}
                 # Track what changed (including improvements to "Unknown" values)
                 improved_fields = []
                 for key, value in retroactive_data.items():
-                    old_value = extracted_data.get(key)
+                    # CRITICAL FIX: Skip if retroactive value is None or "Unknown"
+                    # This prevents overwriting existing valid data with None/Unknown
+                    if value is None or str(value).lower() in ["unknown", "none", ""]:
+                        logger.debug(f"⏭️  RETROACTIVE: Skipping {key}={value} (invalid value)")
+                        continue
+
+                    old_value = merged_for_retroactive.get(key)  # Check against merged data, not just extracted_data
                     if old_value != value:
                         if str(old_value).lower() == "unknown" and str(value).lower() != "unknown":
                             improved_fields.append(f"{key}: {old_value}→{value}")
-                        elif key not in extracted_data or old_value is None:
+                        elif key not in merged_for_retroactive or old_value is None:
                             improved_fields.append(key)
                     extracted_data[key] = value
                 if improved_fields:
                     logger.warning(f"⚡ RETROACTIVE IMPROVEMENTS: {improved_fields}")
-                # Store retroactively filled data
+                # Store retroactively filled data (only valid values)
                 for key, value in retroactive_data.items():
-                    self.conversation_manager.store_user_data(conversation_id, key, value)
+                    if value is not None and str(value).lower() not in ["unknown", "none", ""]:
+                        self.conversation_manager.store_user_data(conversation_id, key, value)
         except Exception as e:
             logger.error(f"❌ Retroactive validation ERROR: {type(e).__name__}: {e}", exc_info=True)
 
-        # 8. Determine next state (delegated to StateCoordinator)
+        # 8. Check if ALL required fields are present (needed for state transition decision)
+        from retroactive_validator import DataRequirements
+        required_fields_confirmation = set(DataRequirements.REQUIREMENTS.get(ConversationState.CONFIRMATION.value, []))
+        required_fields_current_state = set(DataRequirements.REQUIREMENTS.get(current_state.value, []))
+
+        # CRITICAL FIX: Merge ConversationManager's stored data with current turn's extracted_data
+        # This ensures retroactively-filled fields are included in the field-presence check
+        context = self.conversation_manager.get_or_create(conversation_id)
+        merged_data = {**context.user_data, **(extracted_data or {})}
+        extracted_fields = set(merged_data.keys())
+
+        # Check if ALL required fields are present
+        has_all_required = required_fields_confirmation.issubset(extracted_fields)
+        can_advance_from_current_state = required_fields_current_state.issubset(extracted_fields)
+
+        # Debug logging to track field completion
+        print(f"🔍 flags: has_all_required={has_all_required}, can_advance={can_advance_from_current_state}, merged_keys={list(merged_data.keys())}")
+
+        # 9. Determine next state (delegated to StateCoordinator)
+        # CRITICAL FIX: Pass both flags to prevent premature state jumps
         next_state = self.state_coordinator.determine_next_state(
-            current_state, sentiment, extracted_data, user_message
+            current_state, sentiment, extracted_data, user_message,
+            all_required_fields_present=has_all_required,
+            can_advance_from_current_state=can_advance_from_current_state
         )
         if next_state != current_state:
             reason = self.state_coordinator.determine_state_change_reason(
                 user_message, sentiment, extracted_data
             )
+            print(f"📊 decision.complete_check: has_all_required={has_all_required}, current_state={current_state.value}, next_state={next_state.value}")
             self.conversation_manager.update_state(conversation_id, next_state, reason)
 
-        # 9. Update scratchpad AFTER state transition (delegated to ScratchpadCoordinator)
+        # 10. Update scratchpad AFTER state transition (delegated to ScratchpadCoordinator)
         scratchpad = self.scratchpad_coordinator.get_or_create(conversation_id)
         if extracted_data:
             for key, value in extracted_data.items():
@@ -204,16 +239,6 @@ class MessageProcessor:
                 self.scratchpad_coordinator.update_from_extraction(
                     scratchpad, next_state, key, value
                 )
-
-        # 10. Create validated response
-        # Confirmation should only happen when ALL required fields are present
-        # CONFIRMATION state requires: first_name, vehicle_brand, vehicle_model, vehicle_plate, appointment_date
-        from retroactive_validator import DataRequirements
-        required_fields = set(DataRequirements.REQUIREMENTS.get(ConversationState.CONFIRMATION.value, []))
-        extracted_fields = set(extracted_data.keys()) if extracted_data else set()
-
-        # Check if ALL required fields are present in extracted data (from current turn + retroactive scans)
-        has_all_required = required_fields.issubset(extracted_fields)
 
         should_confirm = (
             next_state == ConversationState.CONFIRMATION and

@@ -4,6 +4,10 @@ Uses history_utils for clean conversation history handling.
 """
 import dspy
 from history_utils import get_default_history
+from config import config as _config
+# inside modules.py, replace NameExtractor.forward with this implementation
+from types import SimpleNamespace
+from typing import Any
 from signatures import (
     SentimentAnalysisSignature,
     NameExtractionSignature,
@@ -50,21 +54,142 @@ class IntentClassifier(dspy.Module):
         )
 
 
+
+
+# small helper: a dict that allows attribute access (keeps dict semantics too)
+class AttrDict(dict):
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+    def __setattr__(self, name, value):
+        self[name] = value
+
 class NameExtractor(dspy.Module):
-    """Extract customer name from unstructured text."""
+    """Extract customer name from unstructured text with conservative post-filters."""
 
     def __init__(self):
         super().__init__()
         self.predictor = dspy.ChainOfThought(NameExtractionSignature)
+        # cache stopwords set once
+        self._greeting_stopwords = {s.lower() for s in _config.GREETING_STOPWORDS}
 
-    def forward(self, conversation_history=None, user_message: str = "", context: str = ""):
-        """Extract name with conversation context."""
+    def _token_name_score(self, tok: str) -> int:
+        alpha_count = sum(1 for c in tok if c.isalpha())
+        return 1 if alpha_count >= 2 else 0
+
+    def _looks_like_name_multi_token(self, tokens):
+        scores = [self._token_name_score(t) for t in tokens if t.strip()]
+        if not scores:
+            return False
+        return sum(scores) >= max(1, len(scores) // 2)
+
+    def _is_single_token_greeting(self, token_lower: str):
+        token_clean = token_lower.strip(" .,!?:;\"'`")
+        return token_clean in self._greeting_stopwords
+
+    def _explicit_name_intent(self, user_message: str) -> bool:
+        lc = user_message.lower()
+        triggers = ["my name is", "call me", "you can call me", "this is", "i am ", "i'm "]
+        return any(p in lc for p in triggers)
+
+    def _safe_extract_from_raw(self, raw: Any):
+        if isinstance(raw, dict):
+            first = (raw.get("first_name") or "").strip()
+            last = (raw.get("last_name") or "").strip()
+            conf = (raw.get("confidence") or "").strip().lower()
+            raw_type = "dict"
+        else:
+            first = getattr(raw, "first_name", "") or ""
+            last = getattr(raw, "last_name", "") or ""
+            conf = getattr(raw, "confidence", "") or ""
+            conf = conf.strip().lower() if isinstance(conf, str) else ""
+            raw_type = "obj"
+        return first, last, conf, raw_type
+
+    def _wrap_output(self, out_dict: dict, raw_type: str):
+        if raw_type == "dict":
+            return AttrDict(out_dict)
+        else:
+            return SimpleNamespace(**out_dict)
+
+    def forward(self, conversation_history=None, user_message: str = "", context: str = "") -> AttrDict | SimpleNamespace:
+        
         conversation_history = get_default_history(conversation_history)
-        return self.predictor(
+
+        raw = self.predictor(
             conversation_history=conversation_history,
             user_message=user_message,
             context=context or "collecting customer name"
         )
+
+        first, last, confidence, raw_type = self._safe_extract_from_raw(raw)
+
+        # Compose candidate
+        candidate = ""
+        if first and last:
+            candidate = f"{first} {last}".strip()
+        elif first:
+            candidate = first.strip()
+        else:
+            if isinstance(raw, dict):
+                candidate = (raw.get("full_name") or "").strip()
+            else:
+                candidate = getattr(raw, "full_name", "") or ""
+            candidate = (candidate or "").strip()
+
+        # Explicit intent - highest priority
+        if self._explicit_name_intent(user_message):
+            if not candidate:
+                lc = user_message.lower()
+                for trigger in ["my name is", "call me", "you can call me", "this is"]:
+                    idx = lc.find(trigger)
+                    if idx != -1:
+                        candidate = user_message[idx + len(trigger):].strip().strip(".")
+                        break
+            if not candidate:
+                out = {"first_name":"", "last_name":"", "confidence":"low"}
+                return self._wrap_output(out, raw_type)
+            toks = candidate.split()
+            out = {"first_name": toks[0].title(), "last_name": " ".join(toks[1:]).title() if len(toks)>1 else "", "confidence":"high"}
+            return self._wrap_output(out, raw_type)
+
+        if not candidate:
+            out = {"first_name":"", "last_name":"", "confidence":"low"}
+            return self._wrap_output(out, raw_type)
+
+        tokens = [t.strip() for t in candidate.split() if t.strip()]
+        lower_tokens = [t.lower() for t in tokens]
+
+        # Single-token candidate: be conservative
+        if len(tokens) == 1:
+            tok = tokens[0]
+            tok_lower = lower_tokens[0].strip(" .,!?:;\"'`")
+            if self._is_single_token_greeting(tok_lower):
+                return self._wrap_output({"first_name":"", "last_name":"", "confidence":"low"}, raw_type)
+            if len(tok) <= 1:
+                return self._wrap_output({"first_name":"", "last_name":"", "confidence":"low"}, raw_type)
+            if confidence == "high":
+                out_conf = "high"
+            elif confidence == "medium":
+                out_conf = "medium"
+            else:
+                return self._wrap_output({"first_name":"", "last_name":"", "confidence":"low"}, raw_type)
+            return self._wrap_output({"first_name": tok.title(), "last_name":"", "confidence": out_conf}, raw_type)
+
+        # Multi-token candidate: allow with checks.
+        if self._looks_like_name_multi_token(tokens):
+            first_lower = lower_tokens[0].strip(" .,!?:;\"'`")
+            if first_lower in self._greeting_stopwords:
+                out_conf = "medium" if confidence != "high" else "high"
+                toks = tokens
+                return self._wrap_output({"first_name": toks[0].title(), "last_name":" ".join(toks[1:]).title(), "confidence": out_conf}, raw_type)
+            out_conf = confidence if confidence in ("high","medium") else "medium"
+            toks = tokens
+            return self._wrap_output({"first_name": toks[0].title(), "last_name":" ".join(toks[1:]).title(), "confidence": out_conf}, raw_type)
+
+        return self._wrap_output({"first_name":"", "last_name":"", "confidence":"low"}, raw_type)
 
 
 class VehicleDetailsExtractor(dspy.Module):

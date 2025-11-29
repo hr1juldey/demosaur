@@ -1,21 +1,23 @@
 """BookingFlowManager: High-level orchestration of all Phase 2 components."""
 
 from typing import Tuple, Optional
+from config import ConversationState
+from conversation_manager import ConversationManager
 from booking.scratchpad import ScratchpadManager
 from booking.confirmation import ConfirmationGenerator
 from booking.booking_detector import BookingIntentDetector
 from booking.confirmation_handler import ConfirmationHandler, ConfirmationAction
 from booking.service_request import ServiceRequestBuilder, ServiceRequest
-from booking.state_manager import BookingStateMachine, BookingState
 
 
 class BookingFlowManager:
-    """Orchestrates entire booking flow with typo detection support."""
+    """Orchestrates entire booking flow with unified state management."""
 
-    def __init__(self, conversation_id: str, typo_detector=None):
+    def __init__(self, conversation_id: str, conversation_manager: ConversationManager = None, typo_detector=None):
         self.conversation_id = conversation_id
         self.scratchpad = ScratchpadManager(conversation_id)
-        self.state_machine = BookingStateMachine()
+        # Use injected ConversationManager or create new one
+        self.conversation_manager = conversation_manager or ConversationManager()
         self.handler = ConfirmationHandler(self.scratchpad, typo_detector=typo_detector)
         self.typo_detector = typo_detector
 
@@ -23,28 +25,32 @@ class BookingFlowManager:
                            intent=None) -> Tuple[str, Optional[ServiceRequest]]:
         """
         Main entry point: process user message through booking flow.
+        Uses unified ConversationState instead of separate BookingStateMachine.
 
         Returns:
             (response_message, service_request_if_confirmed or None)
         """
+        # Get current state from unified ConversationManager
+        current_state = self.conversation_manager.get_or_create(self.conversation_id).state
+
         # Step 1: Add extracted data to scratchpad
         self._add_extracted_data(extracted_data)
 
         # Step 2: Check if booking intent detected
         should_confirm = BookingIntentDetector.should_trigger_confirmation(
-            user_message, intent, self.state_machine.get_current_state().value
+            user_message, intent, current_state.value
         )
 
-        if should_confirm and self.state_machine.get_current_state() != BookingState.CONFIRMATION:
-            # Transition to confirmation
-            self.state_machine.transition(BookingState.CONFIRMATION)
+        if should_confirm and current_state != ConversationState.CONFIRMATION:
+            # Transition to confirmation in unified state machine
+            self.conversation_manager.update_state(self.conversation_id, ConversationState.CONFIRMATION)
             summary = ConfirmationGenerator.generate_summary(self.scratchpad.form)
             # Store confirmation message for typo detection
             self.handler.set_confirmation_message(summary)
             return summary, None
 
         # Step 3: Handle confirmation actions (if in confirmation state)
-        if self.state_machine.get_current_state() == BookingState.CONFIRMATION:
+        if current_state == ConversationState.CONFIRMATION:
             # Use typo detection if available
             if self.typo_detector:
                 action, typo_result = self.handler.detect_action_with_typo_check(user_message)
@@ -56,17 +62,22 @@ class BookingFlowManager:
                 action = self.handler.detect_action(user_message)
 
             if action == ConfirmationAction.CONFIRM:
-                # Build service request and move to booking
+                # Build service request and move to COMPLETED in unified state machine
                 service_request = ServiceRequestBuilder.build(
                     self.scratchpad, self.conversation_id
                 )
-                self.state_machine.transition(BookingState.BOOKING)
-                self.state_machine.transition(BookingState.COMPLETION)
+                # Update unified state to COMPLETED (fixes the bug!)
+                self.conversation_manager.update_state(
+                    self.conversation_id,
+                    ConversationState.COMPLETED,
+                    reason="User confirmed booking"
+                )
                 return (f"Booking confirmed! Reference: {service_request.service_request_id}",
                         service_request)
 
             elif action == ConfirmationAction.EDIT:
                 # Update scratchpad and re-show form
+                # Stay in CONFIRMATION state while editing
                 field_ref = self.handler.parse_edit_instruction(user_message)
                 if field_ref:
                     # Extract value after field reference
@@ -78,19 +89,16 @@ class BookingFlowManager:
                 return summary, None
 
             elif action == ConfirmationAction.CANCEL:
-                # Cancel booking
+                # Cancel booking - move to CANCELLED in unified state machine
                 msg = self.handler.handle_cancel()
-                self.state_machine.transition(BookingState.CANCELLED)
-                self.state_machine.reset()
+                self.conversation_manager.update_state(
+                    self.conversation_id,
+                    ConversationState.CANCELLED,
+                    reason="User cancelled booking"
+                )
                 return msg, None
 
-        # Step 4: Continue data collection
-        if self.state_machine.get_current_state() == BookingState.DATA_COLLECTION:
-            completeness = self.scratchpad.get_completeness()
-            return (f"Got it! We're {completeness}% done. "
-                   f"Anything else you'd like to share?"), None
-
-        # Default: acknowledge and continue
+        # Step 4: Continue data collection (in other states)
         completeness = self.scratchpad.get_completeness()
         return (f"Thanks! Data saved ({completeness}% complete). "
                f"Feel free to continue."), None
@@ -131,15 +139,19 @@ class BookingFlowManager:
         """Get current scratchpad."""
         return self.scratchpad
 
-    def get_state(self) -> BookingState:
-        """Get current booking state."""
-        return self.state_machine.get_current_state()
+    def get_state(self) -> ConversationState:
+        """Get current unified conversation state."""
+        return self.conversation_manager.get_or_create(self.conversation_id).state
 
     def is_complete(self) -> bool:
         """Check if booking is complete."""
-        return self.state_machine.is_booking_complete()
+        return self.get_state() == ConversationState.COMPLETED
 
     def reset(self) -> None:
         """Reset flow (for cancellation or new booking)."""
         self.scratchpad.clear_all()
-        self.state_machine.reset()
+        self.conversation_manager.update_state(
+            self.conversation_id,
+            ConversationState.GREETING,
+            reason="Reset to start new booking"
+        )

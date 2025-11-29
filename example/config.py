@@ -15,18 +15,75 @@ class SentimentDimension(str, Enum):
 
 
 class ConversationState(str, Enum):
-    """Current state of the conversation flow."""
+    """Unified conversation state machine for all chat flows."""
+    # Core booking flow
     GREETING = "greeting"
     NAME_COLLECTION = "name_collection"
+    VEHICLE_DETAILS = "vehicle_details"
+    DATE_SELECTION = "date_selection"
+    CONFIRMATION = "confirmation"
+    COMPLETED = "completed"
+
+    # Optional states (unused but kept for future expansion)
     SERVICE_SELECTION = "service_selection"
     TIER_SELECTION = "tier_selection"
     VEHICLE_TYPE = "vehicle_type"
-    VEHICLE_DETAILS = "vehicle_details"
-    DATE_SELECTION = "date_selection"
     SLOT_SELECTION = "slot_selection"
     ADDRESS_COLLECTION = "address_collection"
-    CONFIRMATION = "confirmation"
-    COMPLETED = "completed"
+
+    # Terminal states
+    CANCELLED = "cancelled"
+
+
+class StateTransitionRules:
+    """Defines valid state transitions - single source of truth for state machine."""
+    VALID_TRANSITIONS = {
+        ConversationState.GREETING: [
+            ConversationState.NAME_COLLECTION,
+            ConversationState.SERVICE_SELECTION,
+        ],
+        ConversationState.NAME_COLLECTION: [
+            ConversationState.VEHICLE_DETAILS,
+            ConversationState.SERVICE_SELECTION,
+        ],
+        ConversationState.SERVICE_SELECTION: [
+            ConversationState.NAME_COLLECTION,
+            ConversationState.VEHICLE_DETAILS,
+        ],
+        ConversationState.VEHICLE_DETAILS: [
+            ConversationState.DATE_SELECTION,
+            ConversationState.NAME_COLLECTION,
+            ConversationState.SERVICE_SELECTION,
+        ],
+        ConversationState.DATE_SELECTION: [
+            ConversationState.CONFIRMATION,
+            ConversationState.VEHICLE_DETAILS,
+        ],
+        ConversationState.CONFIRMATION: [
+            ConversationState.COMPLETED,
+            ConversationState.DATE_SELECTION,  # edit
+            ConversationState.CANCELLED,
+        ],
+        ConversationState.COMPLETED: [
+            ConversationState.GREETING,
+        ],
+        ConversationState.CANCELLED: [
+            ConversationState.GREETING,
+        ],
+        # Future states (not actively used)
+        ConversationState.TIER_SELECTION: [
+            ConversationState.CONFIRMATION,
+        ],
+        ConversationState.VEHICLE_TYPE: [
+            ConversationState.VEHICLE_DETAILS,
+        ],
+        ConversationState.SLOT_SELECTION: [
+            ConversationState.CONFIRMATION,
+        ],
+        ConversationState.ADDRESS_COLLECTION: [
+            ConversationState.CONFIRMATION,
+        ],
+    }
 
 
 class Config:
@@ -52,6 +109,8 @@ class Config:
         "hello", "hi", "hey", "yes", "yeah", "yep", "ok", "okay", "sure", "fine",
         # Casual responses
         "ok", "okey", "yo", "yup",
+        # Thanking words
+        "Shukriya" , "Shukriya Ji", "Yaar" , "Dost" , "Sirji"
     }
     
     # Sentiment Thresholds
